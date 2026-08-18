@@ -258,6 +258,7 @@ KNOWN_DPS = {
             "unlock_app",
             "unlock_key",
             "unlock_ble",
+            "authenticated_ble_unlock",
             "jammed",
         ],
     },
