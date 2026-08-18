@@ -19,6 +19,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import (
     API_PROTOCOL_VERSIONS,
+    CONF_BLE_UNLOCK_CHECK,
     CONF_DEVICE_CID,
     CONF_DEVICE_ID,
     CONF_LOCAL_KEY,
@@ -61,6 +62,7 @@ class TuyaLocalDevice(object):
         poll_only=False,
         manufacturer=None,
         model=None,
+        ble_unlock_check=None,
     ):
         """
         Represents a Tuya-based device.
@@ -76,10 +78,12 @@ class TuyaLocalDevice(object):
             poll_only (bool): True if the device should be polled only.
             manufacturer (str | None): The device manufacturer, if known.
             model (str | None): The device model, if known.
+            ble_unlock_check (str | None): Authenticated BLE unlock source.
         """
         self._name = name
         self._manufacturer = manufacturer
         self._model = model
+        self._ble_unlock_check = ble_unlock_check
         self._children = []
         self._force_dps = []
         self._product_ids = []
@@ -170,6 +174,10 @@ class TuyaLocalDevice(object):
     @property
     def name(self):
         return self._name
+
+    @property
+    def ble_unlock_check(self):
+        return self._ble_unlock_check
 
     @property
     def unique_id(self):
@@ -852,6 +860,7 @@ def setup_device(hass: HomeAssistant, config: dict):
         config[CONF_POLL_ONLY],
         manufacturer=config.get(CONF_MANUFACTURER),
         model=config.get(CONF_MODEL),
+        ble_unlock_check=config.get(CONF_BLE_UNLOCK_CHECK),
     )
     hass.data[DOMAIN][get_device_id(config)] = {
         "device": device,
