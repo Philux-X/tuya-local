@@ -15,6 +15,7 @@ from tinytuya import __version__ as tinytuya_version
 
 from .const import (
     API_PROTOCOL_VERSIONS,
+    CONF_BLE_UNLOCK_CHECK,
     CONF_DEVICE_CID,
     CONF_PROTOCOL_VERSION,
     CONF_TYPE,
@@ -46,6 +47,7 @@ def _async_get_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a tuya-local config entry."""
     hass_data = hass.data[DOMAIN][get_device_id(entry.data)]
+    config = {**entry.data, **entry.options}
     hostname = entry.data.get(CONF_HOST, "")
 
     data = {
@@ -57,6 +59,9 @@ def _async_get_diagnostics(
         "host": REDACTED
         if hostname != "" and hostname.casefold() != "auto"
         else hostname,
+        CONF_BLE_UNLOCK_CHECK: REDACTED
+        if config.get(CONF_BLE_UNLOCK_CHECK, "") != ""
+        else "",
         "protocol_version": entry.data[CONF_PROTOCOL_VERSION],
         "tinytuya_version": tinytuya_version,
     }

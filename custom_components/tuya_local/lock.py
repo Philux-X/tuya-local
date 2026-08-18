@@ -9,6 +9,7 @@ from secrets import randbelow
 from time import time
 
 from homeassistant.components.lock import LockEntity, LockEntityFeature
+from homeassistant.exceptions import HomeAssistantError
 
 from .device import TuyaLocalDevice
 from .entity import TuyaLocalEntity
@@ -220,7 +221,7 @@ class TuyaLocalLock(TuyaLocalEntity, LockEntity):
         if self._authenticated_ble_unlock_dp:
             ble_unlock_check = self._device.ble_unlock_check
             if not ble_unlock_check:
-                raise ValueError("BLE unlock check required")
+                raise HomeAssistantError("BLE unlock check required")
             msg = self.build_ble_unlock_msg(ble_unlock_check)
             _LOGGER.info("%s unlocking with authenticated BLE", self._config.config_id)
             await self._authenticated_ble_unlock_dp.async_set_value(self._device, msg)
@@ -287,9 +288,9 @@ class TuyaLocalLock(TuyaLocalEntity, LockEntity):
         try:
             source = b64decode(ble_unlock_check, validate=True)
         except (BinasciiError, TypeError, ValueError):
-            raise ValueError("BLE unlock check must be valid base64") from None
+            raise HomeAssistantError("BLE unlock check must be valid base64") from None
         if len(source) != 19:
-            raise ValueError("BLE unlock check must decode to 19 bytes")
+            raise HomeAssistantError("BLE unlock check must decode to 19 bytes")
         if timestamp is None:
             timestamp = int(time())
 

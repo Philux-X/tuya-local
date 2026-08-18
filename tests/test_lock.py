@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tuya_local.const import (
@@ -129,7 +130,7 @@ def test_build_ble_unlock_msg_rejects_invalid_base64():
     """Test authenticated BLE unlock rejects invalid base64."""
     lock, _device = make_lock([])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(HomeAssistantError):
         lock.build_ble_unlock_msg("not base64", BLE_UNLOCK_TIME)
 
 
@@ -137,7 +138,7 @@ def test_build_ble_unlock_msg_rejects_wrong_length():
     """Test authenticated BLE unlock source must decode to 19 bytes."""
     lock, _device = make_lock([])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(HomeAssistantError):
         lock.build_ble_unlock_msg(
             b64encode(b"too short").decode("utf-8"), BLE_UNLOCK_TIME
         )
@@ -185,7 +186,33 @@ async def test_authenticated_ble_unlock_requires_configured_source():
         ble_unlock_check=None,
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(HomeAssistantError):
+        await lock.async_unlock()
+
+    device.async_set_properties.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "ble_unlock_check",
+    [
+        "not base64",
+        b64encode(b"too short").decode("utf-8"),
+    ],
+)
+async def test_authenticated_ble_unlock_rejects_invalid_configured_source(
+    ble_unlock_check,
+):
+    """Test invalid configured BLE unlock source sends no command."""
+    lock, device = make_lock(
+        [
+            {"id": 46, "type": "boolean", "name": "lock"},
+            {"id": 71, "type": "string", "name": "authenticated_ble_unlock"},
+        ],
+        ble_unlock_check=ble_unlock_check,
+    )
+
+    with pytest.raises(HomeAssistantError):
         await lock.async_unlock()
 
     device.async_set_properties.assert_not_awaited()
