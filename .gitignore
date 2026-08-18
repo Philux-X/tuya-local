@@ -19,3 +19,16 @@ __pycache__/
 .DS_Store
 Thumbs.db
 uv.lock
+
+# Local secrets and hardware captures
+.env
+.env.local
+.env.*
+devices.json
+*devices*.json
+*.log
+*.har
+*.pcap
+*.pcapng
+*.key
+*.pem
