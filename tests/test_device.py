@@ -1,12 +1,27 @@
 import asyncio
 import logging
+from types import SimpleNamespace
 from time import time
 
 import pytest
 
 # from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_HOMEASSISTANT_STOP
-from custom_components.tuya_local.const import CONF_DEVICE_ID, DOMAIN
-from custom_components.tuya_local.device import TuyaLocalDevice, async_delete_device
+from homeassistant.const import CONF_HOST, CONF_NAME
+
+from custom_components.tuya_local.const import (
+    CONF_DEVICE_CID,
+    CONF_DEVICE_ID,
+    CONF_LOCAL_KEY,
+    CONF_POLL_ONLY,
+    CONF_PROTOCOL_VERSION,
+    CONF_TYPE,
+    DOMAIN,
+)
+from custom_components.tuya_local.device import (
+    TuyaLocalDevice,
+    async_delete_device,
+    setup_device,
+)
 
 from .const import EUROM_600_HEATER_PAYLOAD
 
@@ -74,6 +89,97 @@ def test_subdevice_unique_id_is_scoped_by_gateway(patched_hass, mock_api):
     )
 
     assert subject.unique_id == "gateway_id/child_id"
+
+
+def test_yr05_gateway_debug_wraps_parent_internals(patched_hass, mocker, caplog):
+    """YR05 diagnostics should log sanitized parent receive/decode metadata."""
+    packet = SimpleNamespace(cmd=8, seqno=42, retcode=0, payload=b"raw-secret-data")
+    decoded = {
+        "data": {
+            "cid": "child_id",
+            "dps": {
+                "8": 87,
+                "12": "credential-event",
+                "47": True,
+                "71": "dp71-secret",
+            },
+        }
+    }
+    parent = SimpleNamespace(
+        parent=None,
+        _receive=mocker.Mock(return_value=packet),
+        _decode_payload=mocker.Mock(return_value=decoded),
+        set_socketRetryLimit=mocker.Mock(),
+    )
+    child = SimpleNamespace(
+        parent=parent,
+        set_socketRetryLimit=mocker.Mock(),
+    )
+    mocker.patch("tinytuya.Device", side_effect=[parent, child])
+    setup_device(
+        patched_hass,
+        {
+            CONF_NAME: "YR05",
+            CONF_DEVICE_ID: "gateway_id",
+            CONF_HOST: "some.ip.address",
+            CONF_LOCAL_KEY: "local-key-secret",
+            CONF_PROTOCOL_VERSION: "3.4",
+            CONF_DEVICE_CID: "child_id",
+            CONF_POLL_ONLY: False,
+            CONF_TYPE: "yr05_h13_lock",
+        },
+    )
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="custom_components.tuya_local.device.yr05_gateway_debug",
+    ):
+        assert parent._receive() is packet
+        assert parent._decode_payload(b"raw-payload") is decoded
+
+    assert "YR05_GATEWAY_DEBUG parent_receive" in caplog.text
+    assert "YR05_GATEWAY_DEBUG parent_decode" in caplog.text
+    assert '"cmd": 8' in caplog.text
+    assert '"seqno": 42' in caplog.text
+    assert '"payload_length": 15' in caplog.text
+    assert '"cid": "child_id"' in caplog.text
+    assert '"dp_ids": ["12", "47", "71", "8"]' in caplog.text
+    assert '"value": 87' in caplog.text
+    assert '"value": true' in caplog.text
+    assert "raw-secret-data" not in caplog.text
+    assert "credential-event" not in caplog.text
+    assert "dp71-secret" not in caplog.text
+    assert "local-key-secret" not in caplog.text
+
+
+def test_yr05_gateway_debug_ignores_unrelated_profiles(patched_hass, mocker):
+    """The temporary gateway diagnostics should be profile gated."""
+    parent = SimpleNamespace(
+        parent=None,
+        _receive=mocker.Mock(return_value=None),
+        _decode_payload=mocker.Mock(return_value={}),
+        set_socketRetryLimit=mocker.Mock(),
+    )
+    child = SimpleNamespace(
+        parent=parent,
+        set_socketRetryLimit=mocker.Mock(),
+    )
+    mocker.patch("tinytuya.Device", side_effect=[parent, child])
+    setup_device(
+        patched_hass,
+        {
+            CONF_NAME: "Other",
+            CONF_DEVICE_ID: "gateway_id",
+            CONF_HOST: "some.ip.address",
+            CONF_LOCAL_KEY: "local-key-secret",
+            CONF_PROTOCOL_VERSION: "3.4",
+            CONF_DEVICE_CID: "child_id",
+            CONF_POLL_ONLY: False,
+            CONF_TYPE: "other_profile",
+        },
+    )
+
+    assert not hasattr(parent, "_tuya_local_yr05_gateway_debug_wrapped")
 
 
 def test_device_info(subject, mock_api):

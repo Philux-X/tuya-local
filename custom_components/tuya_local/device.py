@@ -27,6 +27,7 @@ from .const import (
     CONF_MODEL,
     CONF_POLL_ONLY,
     CONF_PROTOCOL_VERSION,
+    CONF_TYPE,
     DOMAIN,
 )
 from .helpers.config import get_device_id
@@ -34,6 +35,7 @@ from .helpers.device_config import possible_matches
 from .helpers.log import log_json
 
 _LOGGER = logging.getLogger(__name__)
+_YR05_GATEWAY_DEBUG_LOGGER = logging.getLogger(f"{__name__}.yr05_gateway_debug")
 
 # Extra context for tinytuya error codes whose message does not fully describe
 # the possible causes.  Error 914 in particular is reported for any failure to
@@ -42,6 +44,13 @@ _LOGGER = logging.getLogger(__name__)
 _ERROR_HINTS = {
     "914": "  If previously running OK, likely the device needs to be power cycled.",
 }
+
+# TEMPORARY YR05 gateway event passthrough investigation.
+# Remove this block after physical-event routing is understood.
+YR05_GATEWAY_DEBUG_CONFIG_TYPE = "yr05_h13_lock"
+YR05_GATEWAY_DEBUG_PREFIX = "YR05_GATEWAY_DEBUG"
+YR05_GATEWAY_DEBUG_SAFE_VALUE_DPS = {"8", "46", "47"}
+YR05_GATEWAY_DEBUG_WRAPPED_ATTR = "_tuya_local_yr05_gateway_debug_wrapped"
 
 
 def _collect_possible_matches(cached_state, product_ids):
@@ -187,6 +196,140 @@ class TuyaLocalDevice(object):
                 {CONF_DEVICE_ID: self.dev_id, CONF_DEVICE_CID: self.dev_cid}
             )
         return self._api.id
+
+    def enable_yr05_gateway_debug(self):
+        """Temporarily log sanitized parent gateway receive metadata."""
+        parent = self._api.parent
+        if not self.dev_cid or not parent:
+            return
+        if getattr(parent, YR05_GATEWAY_DEBUG_WRAPPED_ATTR, False):
+            return
+
+        receive = parent._receive
+        decode_payload = parent._decode_payload
+
+        def receive_wrapper(*args, **kwargs):
+            result = receive(*args, **kwargs)
+            self._log_yr05_gateway_packet(result)
+            return result
+
+        def decode_payload_wrapper(*args, **kwargs):
+            result = decode_payload(*args, **kwargs)
+            self._log_yr05_gateway_decoded(result)
+            return result
+
+        parent._receive = receive_wrapper
+        parent._decode_payload = decode_payload_wrapper
+        setattr(parent, YR05_GATEWAY_DEBUG_WRAPPED_ATTR, True)
+
+    def _log_yr05_gateway_packet(self, message):
+        if not _YR05_GATEWAY_DEBUG_LOGGER.isEnabledFor(logging.DEBUG):
+            return
+        try:
+            payload = getattr(message, "payload", None)
+            summary = {
+                "timestamp": round(time(), 3),
+                "source": "parent_gateway",
+                "stage": "_receive",
+                "configured_child_cid": self.dev_cid,
+                "cmd": getattr(message, "cmd", None),
+                "seqno": getattr(message, "seqno", None),
+                "retcode": getattr(message, "retcode", None),
+                "payload_length": len(payload) if payload is not None else None,
+            }
+            _YR05_GATEWAY_DEBUG_LOGGER.debug(
+                "%s parent_receive %s",
+                YR05_GATEWAY_DEBUG_PREFIX,
+                log_json(summary),
+            )
+        except Exception:
+            _YR05_GATEWAY_DEBUG_LOGGER.debug(
+                "%s failed to summarize parent packet",
+                YR05_GATEWAY_DEBUG_PREFIX,
+                exc_info=True,
+            )
+
+    def _log_yr05_gateway_decoded(self, result):
+        if not _YR05_GATEWAY_DEBUG_LOGGER.isEnabledFor(logging.DEBUG):
+            return
+        try:
+            summary = self._summarize_yr05_gateway_decoded(result)
+            _YR05_GATEWAY_DEBUG_LOGGER.debug(
+                "%s parent_decode %s",
+                YR05_GATEWAY_DEBUG_PREFIX,
+                log_json(summary),
+            )
+        except Exception:
+            _YR05_GATEWAY_DEBUG_LOGGER.debug(
+                "%s failed to summarize parent decode",
+                YR05_GATEWAY_DEBUG_PREFIX,
+                exc_info=True,
+            )
+
+    def _summarize_yr05_gateway_decoded(self, result):
+        summary = {
+            "timestamp": round(time(), 3),
+            "source": "parent_gateway",
+            "stage": "_decode_payload",
+            "configured_child_cid": self.dev_cid,
+            "result_type": type(result).__name__,
+        }
+        if not isinstance(result, dict):
+            return summary
+
+        summary["envelope_keys"] = sorted(str(key) for key in result.keys())
+        cid = self._extract_yr05_gateway_node_id(result)
+        if cid is not None:
+            summary["cid"] = cid
+
+        dps = self._extract_yr05_gateway_dps(result)
+        summary["contains_dps"] = dps is not None
+        if dps:
+            summary["dp_ids"] = sorted(str(dp_id) for dp_id in dps.keys())
+            summary["dps"] = {
+                str(dp_id): self._summarize_yr05_gateway_value(dp_id, value)
+                for dp_id, value in dps.items()
+            }
+        return summary
+
+    def _extract_yr05_gateway_node_id(self, result):
+        containers = [result]
+        for key in ("data",):
+            if isinstance(result.get(key), dict):
+                containers.append(result[key])
+
+        for container in containers:
+            for key in ("cid", "node_id", "nodeId", "device_cid", "deviceCid"):
+                if key in container and isinstance(container[key], str | int):
+                    return container[key]
+        return None
+
+    def _extract_yr05_gateway_dps(self, result):
+        if isinstance(result.get("dps"), dict):
+            return result["dps"]
+        if isinstance(result.get("data"), dict) and isinstance(
+            result["data"].get("dps"), dict
+        ):
+            return result["data"]["dps"]
+
+        numeric_items = {
+            key: value for key, value in result.items() if str(key).isdigit()
+        }
+        return numeric_items or None
+
+    def _summarize_yr05_gateway_value(self, dp_id, value):
+        summary = {"type": type(value).__name__}
+        if isinstance(value, str | bytes | bytearray | list | tuple | dict):
+            summary["length"] = len(value)
+        if isinstance(value, dict):
+            summary["keys"] = sorted(str(key) for key in value.keys())
+        if (
+            str(dp_id) in YR05_GATEWAY_DEBUG_SAFE_VALUE_DPS
+            and isinstance(value, bool | int | float | str)
+            and len(str(value)) <= 32
+        ):
+            summary["value"] = value
+        return summary
 
     @property
     def device_info(self):
@@ -862,6 +1005,9 @@ def setup_device(hass: HomeAssistant, config: dict):
         model=config.get(CONF_MODEL),
         ble_unlock_check=config.get(CONF_BLE_UNLOCK_CHECK),
     )
+    if config.get(CONF_TYPE) == YR05_GATEWAY_DEBUG_CONFIG_TYPE:
+        device.enable_yr05_gateway_debug()
+
     hass.data[DOMAIN][get_device_id(config)] = {
         "device": device,
         "tuyadevice": device._api,
