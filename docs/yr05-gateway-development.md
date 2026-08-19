@@ -25,9 +25,11 @@ The preferred shape is:
 - no hardcoded secrets
 - no invented DPs or authentication mechanism
 
-Implementation has not yet been started from this document. Treat this file as
-planning and architecture context, not as evidence that production support
-already exists.
+Phases 1 through 3 have now been implemented on branch
+`feature/yr05-gateway-lock` and published for hardware testing as prerelease
+`v2026.8.1-yr05.1`. Treat this file as the persistent development record for
+that experimental branch, not as evidence that the feature has been merged
+upstream.
 
 ## Initial Milestone
 
@@ -41,6 +43,30 @@ Initial support should include only:
 - lock through `DP46=true`
 - unlock through authenticated DP71
 - physical lock state from DP47
+
+### Real-Hardware Validation Status
+
+The initial milestone has been validated on real hardware through Home
+Assistant using the SigMesh gateway path.
+
+Confirmed behavior:
+
+- the YR05 can be configured as a child device behind the SigMesh gateway
+- protocol auto-detection selects Tuya LAN protocol 3.4
+- profile `yr05_h13_lock` can be selected successfully
+- DP8 battery reports correctly
+- DP47 physical lock state reports correctly
+- Home Assistant lock sends `DP46=true` and physically locks the YR05
+- Home Assistant unlock sends authenticated DP71 and physically unlocks the
+  YR05
+- Home Assistant state updates correctly after Home Assistant-originated lock
+  and unlock operations
+- Smart Life receives the expected notification for Home Assistant-originated
+  authenticated unlock
+- Smart Life remains able to operate the lock while local gateway control is
+  used
+- local gateway control is cleaner and more reliable than the prior BLE/ESP
+  path used during experimentation
 
 Secondary features are intentionally deferred:
 
@@ -73,6 +99,13 @@ should not depend on them.
 - DP71 writes work through the gateway.
 - Smart Life continues to receive lock notifications while local gateway
   control is used.
+
+### Confirmed Product Identity
+
+- product ID: `hhxgpozj`
+- product name: `Smart Lock`
+- category: `jtmspro`
+- model: `H13电商款-新芯片`
 
 ### Confirmed YR05 DPs
 
@@ -113,6 +146,43 @@ DP46 should be treated as a one-way lock command:
 - confirmed: write `true` to lock
 - not confirmed: write `false` to unlock
 - do not implement YR05 unlock by writing `DP46=false`
+
+### Known Limitation: Physical Credential Events
+
+Detailed physical credential/event-history records are not currently observed
+by Home Assistant in real time through the local SigMesh gateway path.
+
+Confirmed limitation:
+
+- physical fingerprint and PIN unlock activity does not currently appear in
+  Home Assistant as detailed credential/user records in real time
+- Smart Life eventually receives those credential/event-history records later
+- disabling phone Bluetooth did not make those physical events appear in Home
+  Assistant through the gateway path
+
+Current interpretation:
+
+- DP47 state is confirmed and should remain the physical lock-state authority
+- DP8, DP46, DP47, DP71, gateway-child transport, and Smart Life coexistence
+  are confirmed
+- real-time DP12, DP13, and DP19 event passthrough from the lock/gateway into
+  `tuya-local` is not confirmed
+- do not assume fingerprint, PIN, manual, or other detailed physical-event
+  records are locally available through the gateway until targeted logs prove
+  it
+
+Unknowns and hypotheses:
+
+- unknown whether the SigMesh gateway emits physical credential records over a
+  parent-level LAN event channel that TinyTuya does not currently expose
+- unknown whether a gateway-specific subscription or different protocol
+  command is required to enable child-device event reporting
+- possible that ordinary `status()` polling retrieves only current DP state,
+  while credential/event-history records travel through a separate delayed app
+  or cloud path
+- possible that child-device messages do arrive on the gateway socket but are
+  ignored because they are not decoded into the simple `{"dps": ...}` shape
+  consumed by `tuya-local`
 
 ## DP71 Authentication
 
@@ -345,6 +415,94 @@ The confirmed gateway behavior shows DP47 updates after both local lock and
 authenticated unlock, so the minimal implementation does not need special
 gateway polling logic.
 
+### Gateway Event-Passthrough Findings
+
+Focused code inspection after real-hardware testing found no generic
+gateway-specific event subscription or child-event passthrough layer in
+`tuya-local`.
+
+Repository facts:
+
+- `TuyaLocalDevice.__init__` constructs a TinyTuya child `Device` with
+  `cid=dev_cid` and `parent=parent` when `device_cid` is configured.
+- `TuyaLocalDevice.async_receive` alternates `updatedps()` and `status()` for
+  full refreshes, sends `heartbeat()` while persistent, and otherwise waits on
+  `self._api.receive()`.
+- `TuyaLocalDevice.receive_loop` handles dictionaries returned by TinyTuya. If
+  the dictionary contains `dps`, it unwraps that map, merges it into
+  `_cached_state`, calls each entity's `on_receive`, and schedules entity state
+  updates.
+- The receive loop does not decode raw gateway envelopes, node-event frames,
+  or BLE-style message bodies itself.
+- If TinyTuya child transport returns an unsolicited child update as a normal
+  `dps` map, current `tuya-local` code should cache it and notify entities.
+- If the gateway emits physical credential records only on the parent socket,
+  in a non-`dps` payload shape, or behind a required subscription command, the
+  current code has no explicit decoder or subscription path for that.
+
+Why state can work while detailed events do not:
+
+- DP47 is a durable current-state datapoint, so polling and normal DP updates
+  are sufficient for lock state.
+- DP12, DP13, and DP19 are event-like records. If they are transient,
+  non-persistent, absent from normal child `status()` responses, or delivered
+  through a separate gateway/event-history mechanism, the current gateway path
+  can miss them even while DP47 continues to work.
+- The current minimal YR05 profile intentionally does not expose DP12, DP13, or
+  DP19. Even if those DPs arrived as ordinary `dps` updates, there is currently
+  no YR05 entity to present them.
+
+This limitation looks partly unimplemented in `tuya-local` and partly
+unconfirmed at the gateway protocol layer. Current code can consume ordinary
+child `dps` pushes, but there is no evidence in the inspected code of a
+generic gateway event-history passthrough mechanism.
+
+## Known-Working BLE Reference
+
+The local `tuya_local_ble` implementation in `C:\Projects\Tuya-BLE` is a
+known-working behavioral reference for YR05 physical activity in Home
+Assistant. It was inspected read-only and should not be modified as part of
+gateway support.
+
+Repository facts from the BLE reference:
+
+- `custom_components/tuya_local_ble/lock.py` maps YR05 product `hhxgpozj` with
+  state DP47, lock command DP46, and authenticated unlock DP71.
+- YR05 BLE lock state is derived from DP47. In the BLE lock entity,
+  `DP47=false` means locked and `DP47=true` means unlocked.
+- BLE lock sends the YR05 lock command by setting DP46 to `true`.
+- BLE authenticated unlock builds a raw DP71 request from configured
+  `ble_unlock_check`, sends it as a raw datapoint, tracks the exact request,
+  validates the DP71 response for the active transaction, and then waits for
+  DP47 to confirm physical unlock.
+- BLE notifications are received through GATT notify, decoded by
+  `_notification_handler`, parsed as Tuya BLE receive messages such as
+  `FUN_RECEIVE_DP`, `FUN_RECEIVE_SIGN_DP`, `FUN_RECEIVE_TIME_DP`, and V4
+  variants, then surfaced through datapoint callbacks into Home Assistant's
+  coordinator.
+- For YR05, the inspected BLE HA mappings expose battery DP8, lock state/control
+  DP47/DP46/DP71, passage mode DP101, and a manual refresh button.
+
+Important comparison:
+
+- The BLE parser is generic enough to store any decoded datapoint that the lock
+  sends, so BLE logs may show additional raw physical-event DPs even when no HA
+  entity presents them.
+- The inspected BLE HA mappings do not currently expose YR05 DP12, DP13, or
+  DP19 as detailed fingerprint/PIN/BLE credential-event entities.
+- Therefore, the known-working BLE behavior visible in code is primarily
+  DP47-driven physical lock-state activity plus DP71 transaction handling, not
+  confirmed detailed credential/user-record presentation.
+- The SigMesh gateway path currently depends on TinyTuya LAN child-device
+  decoding. It does not have an equivalent BLE-notification parser for raw
+  Tuya BLE receive frames.
+
+Hypothesis to test:
+
+- physical credential events may be available locally only as BLE notification
+  datapoints, as gateway parent-level messages, or after a gateway-specific
+  subscription, rather than through ordinary child `status()` polling.
+
 ## Relevant Existing YAML Profiles
 
 These profiles are useful references, but none should be copied blindly.
@@ -422,17 +580,19 @@ Several BLE lock profiles contain `ble_unlock_check`, including:
 Because existing profiles already use `ble_unlock_check` passively, do not make
 that DP name alone trigger active local unlock behavior.
 
-## Recommended New DP Names
+## Current YR05 DP Names
 
-Use explicit new DP names for behavior that does not currently exist:
+Current branch behavior uses the existing lock DP name for DP46 and an
+explicit new opt-in DP name for DP71:
 
-- `lock_command`
+- `lock`
 - `authenticated_ble_unlock`
 
-Recommended semantics:
+Current semantics:
 
-- `lock_command`: write-only or command-style lock DP. For YR05 this maps to
-  DP46 and writes `true` to lock.
+- `lock`: for YR05 this maps to DP46 and writes `true` to lock. DP71
+  authenticated unlock takes precedence in `async_unlock`, so YR05 unlock does
+  not write `DP46=false`.
 - `authenticated_ble_unlock`: active unlock DP. For YR05 this maps to DP71 and
   writes the computed authenticated Base64 request.
 
@@ -458,11 +618,9 @@ Initial milestone profile structure:
 
 - top-level `name: Door lock`
 - lock entity:
-  - DP46 `lock_command`, optional
+  - DP46 `lock`
   - DP47 `lock_state`, mapped so `false` means locked and `true` means unlocked
-  - DP71 `authenticated_ble_unlock`, optional, hidden, sensitive
-  - DP71 `ble_unlock_check`, optional, hidden, sensitive, if using cached DP
-    source fallback
+  - DP71 `authenticated_ble_unlock`, optional, sensitive
 - battery sensor:
   - DP8 battery percentage
 
@@ -485,8 +643,9 @@ Do not invent ranges or units for DP36. Use Tuya data model evidence if
 available.
 
 The known gateway CID `cd72a26b41cc2f02` is not a product ID and should not be
-used in the YAML `products:` section. A production profile needs the actual
-Tuya product ID, manufacturer, and model if available.
+used in the YAML `products:` section. The current profile uses confirmed
+product ID `hhxgpozj` with model metadata derived from the confirmed H13
+new-chip lock identity.
 
 ## `ble_unlock_check` Supply and Storage
 
@@ -494,12 +653,10 @@ Do not hardcode or commit real `ble_unlock_check` values.
 
 Recommended approach:
 
-- Add an optional secret-like config entry/option for `ble_unlock_check`.
+- Use a secret-like config entry/option for `ble_unlock_check`.
 - Store it in Home Assistant config entry data/options similarly to `local_key`.
 - Redact it from diagnostics.
 - Let the lock entity read it from the runtime device/config.
-- Also allow a hidden/sensitive cached DP71 source fallback if the device
-  reports the value.
 
 Reasoning:
 
@@ -508,8 +665,10 @@ Reasoning:
 - It should not appear in logs, diagnostics, tests, or fixtures except as
   synthetic dummy data.
 - A config option lets users supply the value without modifying source files.
+- Repeated gateway child status queries did not report DP71, so the initial
+  gateway implementation must not rely on cached/reported DP71 as the source.
 
-If config entry storage is added, likely files are:
+Implemented config-entry storage touches:
 
 - `custom_components/tuya_local/const.py`
 - `custom_components/tuya_local/config_flow.py`
@@ -519,26 +678,23 @@ If config entry storage is added, likely files are:
 Keep the UI and storage change narrowly scoped to lock profiles that opt in to
 authenticated BLE unlock.
 
-## Minimal Python Implementation Plan
+## Implemented Minimal Python Shape
 
-1. Add support in `TuyaLocalLock.__init__` for:
-   - `_lock_command_dp`
-   - `_authenticated_ble_unlock_dp`
-   - `_ble_unlock_check_dp`
-2. Add a DP71 payload builder, for example `build_ble_unlock_msg`.
-3. In `async_lock()`:
-   - if `_lock_command_dp` is present, write `true`
-   - otherwise preserve existing behavior
-4. In `async_unlock()`:
-   - if `_authenticated_ble_unlock_dp` is present, build and write DP71
-   - otherwise preserve existing behavior
-5. Ensure `async_unlock()` never writes `false` to YR05 DP46.
-6. Keep existing secure-code paths unchanged.
-7. Keep the feature opt-in through YAML DP names, not through the mere presence
-   of `ble_unlock_check`.
+Current branch behavior:
 
-Implementation should be small and local to the lock platform unless config
-entry storage for `ble_unlock_check` is added.
+1. `TuyaLocalLock.__init__` consumes `authenticated_ble_unlock` as an explicit
+   active unlock DP.
+2. DP46 continues to use the existing lock DP name `lock`.
+3. `async_lock()` remains on the existing writable `lock` path and writes
+   `true`.
+4. `async_unlock()` checks `authenticated_ble_unlock` before the existing
+   writable `lock=false` branch, so the YR05 profile does not unlock by
+   writing `DP46=false`.
+5. `build_ble_unlock_msg` builds the DP71 Base64 request from configured
+   `ble_unlock_check`.
+6. Existing secure-code paths are unchanged.
+7. Existing passive `ble_unlock_check` profiles do not opt in to active unlock
+   behavior unless they declare `authenticated_ble_unlock`.
 
 ## Tests To Add or Update
 
@@ -558,7 +714,7 @@ Add tests for:
   configured
 - `async_unlock()` sends nothing useful and raises/fails cleanly when source
   material is missing
-- `async_lock()` with `lock_command` writes `DP46=true`
+- `async_lock()` with YR05 `lock` DP writes `DP46=true`
 - `async_unlock()` does not write `DP46=false`
 
 Defer DP12, DP13, and DP19 event presentation tests until after the initial
@@ -572,7 +728,6 @@ Relevant file:
 
 Update known lock DPs to include:
 
-- `lock_command`
 - `authenticated_ble_unlock`
 - `ble_unlock_check`, if not already accepted for the relevant entity path
 
@@ -657,27 +812,32 @@ uv run yamllint custom_components/tuya_local/devices
 
 ## Open Questions Before Productionizing
 
-- What is the YR05 Tuya product ID?
-- What manufacturer and model should be used in the YAML `products:` entry?
 - What are the confirmed DP28 language enum values?
 - What are the confirmed DP31 beep-volume enum values or numeric range?
 - What is the confirmed DP36 range, unit, and scale?
-- Should the first implementation require user-supplied `ble_unlock_check`, or
-  should it rely on hidden/sensitive cached DP71 when available?
 - Does the cloud config flow's indirect-device local-key behavior match all
   YR05 gateway setups, or only the tested one?
+- Is real-time physical credential/event passthrough available from the
+  SigMesh gateway, and if so, what message shape or subscription enables it?
 
 ## Current Recommended Next Step
 
-After review of this document, implement the feature in this order:
+The initial gateway-control milestone is validated. Do not add deferred DPs to
+the YR05 profile until the physical-event path is better understood.
 
-1. Lock platform tests for DP46 lock command and DP71 authenticated unlock.
-2. Minimal lock platform extension for `lock_command` and
-   `authenticated_ble_unlock`.
-3. Conservative YR05 YAML profile for only DP8, DP46, DP47, and DP71.
-4. Confirm YR05 can be discovered and configured as a gateway child.
-5. Config option and diagnostics redaction for `ble_unlock_check`, if approved.
-6. Gateway/subdevice regression test if touched or if confidence is needed
-   before PR.
-7. Defer event presentation and config entities until the initial milestone is
-   reliable.
+Recommended next research step:
+
+1. Capture redacted TinyTuya LAN receive output from both the child object and
+   the parent gateway object during physical fingerprint, PIN, manual lock, and
+   manual unlock operations.
+2. Record only message shape, command names/codes if available, DP IDs, and
+   value lengths/types. Do not record local keys, `ble_unlock_check`, full raw
+   DP71 payloads, or credential values.
+3. Compare those captures with the BLE reference's decoded datapoint callbacks,
+   especially whether physical activity produces DP47 only or also DP12, DP13,
+   DP19, or another gateway event envelope.
+4. Test whether `updatedps()` with explicit DP12, DP13, DP19, and DP47 IDs
+   changes what the child reports after a physical operation.
+5. If the child remains silent, test whether the parent gateway receive socket
+   emits a child-event envelope and whether TinyTuya exposes enough raw data to
+   decode it safely.
