@@ -594,6 +594,82 @@ def test_configs_can_be_matched():
             )
 
 
+def test_yr05_h13_lock_profile(mocker):
+    """Test the YR05 H13 lock profile's confirmed gateway DPs."""
+    cfg = get_config("yr05_h13_lock")
+    entities = list(cfg.all_entities())
+
+    lock = next(entity for entity in entities if entity.entity == "lock")
+    for name, dp_id in {
+        "unlock_fingerprint": "12",
+        "unlock_password": "13",
+        "unlock_ble": "19",
+    }.items():
+        dp = lock.find_dps(name)
+        assert dp is not None
+        assert dp.id == dp_id
+        assert dp.optional
+        assert not dp.persist
+
+    assert lock.find_dps("lock").id == "46"
+
+    lock_state = lock.find_dps("lock_state")
+    assert lock_state.id == "47"
+    assert lock_state.get_value(mock_device({"47": False}, mocker)) is True
+    assert lock_state.get_value(mock_device({"47": True}, mocker)) is False
+
+    authenticated_unlock = lock.find_dps("authenticated_ble_unlock")
+    assert authenticated_unlock.id == "71"
+    assert authenticated_unlock.optional
+    assert not authenticated_unlock.persist
+    assert authenticated_unlock.sensitive
+
+    battery = next(entity for entity in entities if entity.device_class == "battery")
+    battery_dp = battery.find_dps("sensor")
+    assert battery_dp.id == "8"
+    assert battery_dp.range(mock_device({"8": 50}, mocker)) == (0, 100)
+
+    passage = next(entity for entity in entities if entity.name == "Passage mode")
+    passage_dp = passage.find_dps("switch")
+    assert passage.entity == "switch"
+    assert passage_dp.id == "101"
+    assert passage_dp.optional
+
+    language = next(
+        entity for entity in entities if entity.config_id == "select_language"
+    )
+    language_dp = language.find_dps("option")
+    assert language_dp.id == "28"
+    assert language_dp.values(mock_device({}, mocker)) == ["chinese", "english"]
+    assert language_dp.get_values_to_set(mock_device({}, mocker), "chinese") == {
+        "28": "chinese_simplified"
+    }
+
+    volume = next(entity for entity in entities if entity.config_id == "select_volume")
+    volume_dp = volume.find_dps("option")
+    assert volume_dp.id == "31"
+    assert volume_dp.values(mock_device({}, mocker)) == [
+        "mute",
+        "low",
+        "normal",
+        "high",
+    ]
+
+    auto_lock = next(entity for entity in entities if entity.name == "Automatic lock")
+    auto_lock_dp = auto_lock.find_dps("switch")
+    assert auto_lock.entity == "switch"
+    assert auto_lock_dp.id == "33"
+    assert auto_lock_dp.optional
+
+    delay = next(entity for entity in entities if entity.name == "Automatic lock delay")
+    delay_dp = delay.find_dps("value")
+    delay_device = mock_device({"36": 5}, mocker)
+    assert delay.entity == "number"
+    assert delay_dp.id == "36"
+    assert delay_dp.range(delay_device) == (5, 60)
+    assert delay_dp.step(delay_device) == 1
+
+
 # Most of the device_config functionality is exercised during testing of
 # the various supported devices.  These tests concentrate only on the gaps.
 

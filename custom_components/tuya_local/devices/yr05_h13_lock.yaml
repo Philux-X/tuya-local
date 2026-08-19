@@ -6,6 +6,21 @@ products:
 entities:
   - entity: lock
     dps:
+      - id: 12
+        type: integer
+        name: unlock_fingerprint
+        optional: true
+        persist: false
+      - id: 13
+        type: integer
+        name: unlock_password
+        optional: true
+        persist: false
+      - id: 19
+        type: integer
+        name: unlock_ble
+        optional: true
+        persist: false
       - id: 46
         type: boolean
         name: lock
@@ -23,6 +38,14 @@ entities:
         optional: true
         persist: false
         sensitive: true
+  - entity: switch
+    name: Passage mode
+    icon: "mdi:lock-open-variant"
+    dps:
+      - id: 101
+        type: boolean
+        name: switch
+        optional: true
   - entity: sensor
     class: battery
     dps:
@@ -33,3 +56,57 @@ entities:
         range:
           min: 0
           max: 100
+  - entity: select
+    translation_key: language
+    category: config
+    dps:
+      - id: 28
+        type: string
+        name: option
+        optional: true
+        mapping:
+          - dps_val: chinese_simplified
+            value: chinese
+          - dps_val: english
+            value: english
+  - entity: select
+    translation_key: volume
+    category: config
+    dps:
+      - id: 31
+        type: string
+        name: option
+        optional: true
+        mapping:
+          - dps_val: mute
+            value: mute
+          - dps_val: low
+            value: low
+          - dps_val: normal
+            value: normal
+          - dps_val: high
+            value: high
+  - entity: switch
+    name: Automatic lock
+    category: config
+    icon: "mdi:lock-reset"
+    dps:
+      - id: 33
+        type: boolean
+        name: switch
+        optional: true
+  - entity: number
+    name: Automatic lock delay
+    icon: "mdi:lock-clock"
+    category: config
+    dps:
+      - id: 36
+        type: integer
+        name: value
+        optional: true
+        unit: s
+        range:
+          min: 5
+          max: 60
+        mapping:
+          - step: 1

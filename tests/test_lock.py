@@ -175,6 +175,34 @@ async def test_passive_ble_unlock_check_behavior_is_unchanged():
     device.async_set_properties.assert_awaited_once_with({"46": False})
 
 
+@pytest.mark.parametrize(
+    ("dp_id", "dp_name", "changed_by"),
+    [
+        ("12", "unlock_fingerprint", "Finger #7"),
+        ("13", "unlock_password", "Password #7"),
+        ("19", "unlock_ble", "Bluetooth #7"),
+    ],
+)
+def test_unlock_event_dps_report_changed_by(dp_id, dp_name, changed_by):
+    """Test unlock event DPs are reported through the lock changed_by field."""
+    lock, device = make_lock(
+        [
+            {
+                "id": int(dp_id),
+                "type": "integer",
+                "name": dp_name,
+                "optional": True,
+                "persist": False,
+            },
+        ]
+    )
+    device._cached_state = {dp_id: 7}
+    device.get_property.side_effect = lambda dpid: device._cached_state.get(dpid)
+
+    assert lock.changed_by == changed_by
+    assert dp_id not in device._cached_state
+
+
 @pytest.mark.asyncio
 async def test_authenticated_ble_unlock_requires_configured_source():
     """Test missing configured BLE unlock source sends no command."""
