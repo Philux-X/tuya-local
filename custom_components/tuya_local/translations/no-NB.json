@@ -1173,6 +1173,17 @@
                     "danger": "Farlig"
                 }
             },
+            "sd_status": {
+                "name": "SD-kortstatus",
+                "state": {
+                    "fault": "Feil",
+                    "formatting": "Formaterer",
+                    "full": "Full",
+                    "missing": "Manglende",
+                    "normal": "Normal",
+                    "unformatted": "Uformaterte"
+                }
+            },
             "status": {
                 "name": "Status",
                 "state": {
@@ -1251,8 +1262,6 @@
                     "full": "Full",
                     "empty": "Tom",
                     "missing": "Manglende",
-                    "formatting": "Formatering",
-                    "unformatted": "Uformaterte",
                     "failed": "Mislyktes",
                     "replying": "Svarer",
                     "playback": "Avspilling",
@@ -1373,6 +1382,9 @@
                     "off": "Åpen",
                     "on": "Lukket"
                 }
+            },
+            "camera_record": {
+                "name": "Kameraopptak"
             },
             "do_not_disturb": {
                 "name": "Ikke forstyrr"

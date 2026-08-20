@@ -76,7 +76,7 @@ def ble_unlock_check_selector():
 
 class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     VERSION = 13
-    MINOR_VERSION = 22
+    MINOR_VERSION = 23
     CONNECTION_CLASS = CONN_CLASS_LOCAL_PUSH
     device = None
     data = {}

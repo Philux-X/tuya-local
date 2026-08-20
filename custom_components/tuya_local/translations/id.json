@@ -1173,6 +1173,17 @@
                     "danger": "Bahaya"
                 }
             },
+            "sd_status": {
+                "name": "Status SD",
+                "state": {
+                    "fault": "Kesalahan",
+                    "formatting": "Memformat",
+                    "full": "Penuh",
+                    "missing": "Hilang",
+                    "normal": "Normal",
+                    "unformatted": "Belum diformat"
+                }
+            },
             "status": {
                 "name": "Status",
                 "state": {
@@ -1251,8 +1262,6 @@
                     "full": "Penuh",
                     "empty": "Kosong",
                     "missing": "Hilang",
-                    "formatting": "Memformat",
-                    "unformatted": "Belum diformat",
                     "failed": "Gagal",
                     "replying": "Membalas",
                     "playback": "Pemutaran",
@@ -1373,6 +1382,9 @@
                     "on": "Tutup",
                     "off": "Buka"
                 }
+            },
+            "camera_record": {
+                "name": "Rekam kamera"
             },
             "do_not_disturb": {
                 "name": "Jangan ganggu"

@@ -415,6 +415,7 @@
 - HomCom 6-speed tower fan
 - Homebase 12" oscillating fan
 - HomeMate 5 speed fan regulator
+- Homlit ceiling fan with light
 - Howeall register booster fan (also branded Sanycasa)
 - Humhold 24" low profile ceiling fan with RGB+CW lights
 - Hunter Pacific 6 and 9 speed ceiling fans with light
@@ -719,6 +720,7 @@
 - PC321-TY 3 phase power clamp meter
 - PC473 3-phase energy monitor
 - PJ-1103, PJ-1103A power clamp meters
+- PowBay JGQW01-63 energy monitoring circuit breaker
 - PZIOT E01 energy meter
 - SG600MD solar inverter (also SG700MD, other SGxx0MD and SGxx0W models) sold under various brands
 - SmartMCB SMT006 energy meter (10 byte and 8 byte phase info variants)
