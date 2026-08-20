@@ -2,7 +2,12 @@ name: Door lock
 products:
   - id: hhxgpozj
     name: Smart Lock
-    model: YR05 H13 new-chip
+    manufacturer: Yamiry
+    model: YR05
+  - id: 6xjvratw
+    name: Smart Lock
+    manufacturer: Yamiry
+    model: YR02
 entities:
   - entity: lock
     dps:
@@ -24,9 +29,11 @@ entities:
       - id: 46
         type: boolean
         name: lock
+        optional: true
       - id: 47
         type: boolean
         name: lock_state
+        optional: true
         mapping:
           - dps_val: true
             value: false

@@ -1,7 +1,7 @@
-# YR05 Gateway Development Notes
+# Yamiry YR05/YR02 Gateway Development Notes
 
-This file is a persistent handoff document for experimental YR05 gateway
-support in `tuya-local`.
+This file is a persistent handoff document for experimental Yamiry YR05/YR02
+gateway support in `tuya-local`.
 
 Future Codex sessions working on this feature should read:
 
@@ -14,12 +14,13 @@ to avoid repeating a broad repository survey before implementation work.
 
 ## Scope
 
-The goal is to support a YR05 lock reached locally through a Tuya SigMesh
-gateway.
+The goal is to support confirmed Yamiry BLE locks reached locally through the
+tested CR3L Tuya SigMesh gateway.
 
 The preferred shape is:
 
-- a new YAML device profile for the YR05 lock
+- a conservative YAML device profile anchored on the confirmed Yamiry YR05
+  product
 - a small reusable Python extension in the existing lock platform
 - no new Tuya-BLE repository changes
 - no hardcoded secrets
@@ -30,6 +31,34 @@ Phases 1 through 3 have now been implemented on branch
 `v2026.8.1-yr05.1`. Treat this file as the persistent development record for
 that experimental branch, not as evidence that the feature has been merged
 upstream.
+
+Only Yamiry YR05 and Yamiry YR02 are currently confirmed. YR01, broader
+Yamiry YR-series compatibility, all `jtmspro` products, and all Tuya BLE locks
+remain hypotheses or unknowns unless separately tested.
+
+## Tested Hardware
+
+Confirmed gateway:
+
+- CR3L Tuya SigMesh Gateway
+- firmware V1.19.22
+- Tuya LAN protocol 3.5
+- TinyTuya 1.20.0 works with this gateway
+- Home Assistant / `tuya-local` works with this gateway using protocol 3.5
+
+Confirmed locks:
+
+- Yamiry YR05
+  - category: `jtmspro`
+  - product name: `Smart Lock`
+  - product ID: `hhxgpozj`
+- Yamiry YR02
+  - category: `jtmspro`
+  - product name: `Smart Lock`
+  - product ID: `6xjvratw`
+
+These observations should not be generalized to other Tuya BLE/SigMesh
+gateways or firmware without testing.
 
 ## Initial Milestone
 
@@ -46,19 +75,19 @@ Initial support should include only:
 
 ### Real-Hardware Validation Status
 
-The initial milestone has been validated on real hardware through Home
-Assistant using the SigMesh gateway path.
+The initial milestone was first validated on YR05, then the same profile and
+gateway approach were confirmed with YR02.
 
-Confirmed behavior:
+Confirmed YR05/YR02 behavior on the tested CR3L gateway:
 
-- the YR05 can be configured as a child device behind the SigMesh gateway
-- protocol auto-detection selects Tuya LAN protocol 3.4
-- profile `yr05_h13_lock` can be selected successfully
+- the lock can be configured as a child device behind the CR3L SigMesh gateway
+- protocol 3.5 works locally through the gateway
+- profile `yamiry_yr05_lock` can be selected successfully
 - DP8 battery reports correctly
 - DP47 physical lock state reports correctly
-- Home Assistant lock sends `DP46=true` and physically locks the YR05
+- Home Assistant lock sends `DP46=true` and physically locks the lock
 - Home Assistant unlock sends authenticated DP71 and physically unlocks the
-  YR05
+  lock
 - Home Assistant state updates correctly after Home Assistant-originated lock
   and unlock operations
 - Smart Life receives the expected notification for Home Assistant-originated
@@ -68,44 +97,70 @@ Confirmed behavior:
 - local gateway control is cleaner and more reliable than the prior BLE/ESP
   path used during experimentation
 
-Secondary features are intentionally deferred:
+That initial gateway-control milestone is now validated for the confirmed
+YR05/YR02 locks on the tested CR3L gateway. The current profile also includes
+the low-hanging-fruit DPs whose mappings are known:
 
-- DP12 fingerprint event presentation
-- DP13 PIN/password event presentation
-- DP19 BLE/mobile event presentation
-- language
-- beep volume
-- automatic locking
+- DP12 fingerprint unlock reporting
+- DP13 PIN/password unlock reporting
+- DP19 BLE/mobile unlock reporting
+- DP28 language
+- DP31 beep volume
+- DP33 automatic lock enable
+- DP36 automatic lock delay
+- DP101 passage mode
+
+Still deferred:
+
+- reliable detailed physical credential/event-history passthrough beyond DP47
 - temporary credentials
-- fingerprints
-- PIN management
-- any other lock features beyond the initial milestone
+- fingerprint enrollment, deletion, or management
+- PIN enrollment, deletion, or management
+- offline password protocols
+- any other lock features beyond the confirmed mappings
 
-Implementation and tests should keep this boundary clear. It is acceptable for
-the document to record confirmed secondary DPs, but the first implementation
-should not depend on them.
+Implementation and tests should keep this boundary clear. Exposing the
+low-hanging-fruit DPs does not prove that the gateway reliably passes through
+detailed credential event history in real time.
 
 ## Confirmed Laboratory Facts
 
 ### Gateway and Transport
 
-- The SigMesh gateway communicates locally over Tuya LAN protocol 3.4.
-- The YR05 is locally addressable through gateway CID
-  `cd72a26b41cc2f02`.
+- The tested CR3L SigMesh gateway communicates locally over Tuya LAN protocol
+  3.5.
+- Each BLE lock is locally addressable through its gateway child CID / UUID /
+  `node_id`.
 - TinyTuya parent/child transport works with a parent gateway plus child CID.
 - `child.status()` works through the gateway.
+- `updatedps([47])` returns an empty successful ACK on the tested setup and
+  has not been demonstrated to force a state refresh.
 - DP31 writes work through the gateway.
 - DP46 writes work through the gateway.
 - DP71 writes work through the gateway.
+- On CR3L firmware V1.19.22, lock/unlock state changes propagate immediately
+  to Home Assistant and Smart Life.
 - Smart Life continues to receive lock notifications while local gateway
   control is used.
 
-### Confirmed Product Identity
+### Confirmed Compatible Products
 
-- product ID: `hhxgpozj`
-- product name: `Smart Lock`
-- category: `jtmspro`
-- model: `H13电商款-新芯片`
+The current `yamiry_yr05_lock` profile supports two confirmed Yamiry products:
+
+- Yamiry YR05, product ID `hhxgpozj`
+- Yamiry YR02, product ID `6xjvratw`
+
+Confirmed YR02 compatibility facts:
+
+- DP47 `lock_motor_state` uses the same polarity as YR05:
+  `false` means locked and `true` means unlocked
+- YR02 exposes the same relevant lock DPs, including DP46, DP47, and DP71
+- the initial local YR02 `status()` response may omit DP46 and DP47, so
+  DP46 and DP47 are optional in the profile for matching purposes
+
+DP71 authenticated unlock still requires each physical lock's own
+`ble_unlock_check` value. Do not reuse, expose, or hardcode another lock's
+authentication material.
 
 ### Confirmed YR05 DPs
 
@@ -186,9 +241,9 @@ Unknowns and hypotheses:
 
 ## DP71 Authentication
 
-YR05 unlock uses an authenticated RAW payload on DP71.
+Yamiry YR05/YR02 unlock uses an authenticated RAW payload on DP71.
 
-The source material is an existing `ble_unlock_check` Base64 value.
+The source material is an existing per-lock `ble_unlock_check` Base64 value.
 
 Validation:
 
@@ -223,8 +278,96 @@ Unlock request layout:
 The result is 19 bytes. For TinyTuya LAN transport, Base64-encode those
 19 bytes before writing DP71.
 
-This was physically verified to unlock the YR05. It is not the same as the
-existing smart-lock PIN/code authentication payloads.
+This was physically verified to unlock the confirmed Yamiry locks. It is not
+the same as the existing smart-lock PIN/code authentication payloads.
+
+Current repeatable acquisition method for `ble_unlock_check`:
+
+1. Pair the lock in Smart Life.
+2. Link/account-bind the device to the Tuya Developer project.
+3. Open Tuya Developer API Explorer.
+4. Run Query Properties for the individual BLE lock.
+5. Locate `ble_unlock_check`.
+6. Use its `value`.
+
+DP71 / `ble_unlock_check` is per-device authentication material. Do not reuse
+one lock's value on another lock, even another lock of the same model. Do not
+commit real DP71 values, real `ble_unlock_check` values, or real Local Keys.
+
+Ordinary Tuya Device ID and Local Key discovery remains the normal Tuya
+Developer Platform / TinyTuya workflow and is separate from DP71 acquisition.
+
+## Gateway and Lock Credentials
+
+There are two separate identity and authentication layers.
+
+### CR3L Gateway LAN Connection
+
+`tuya-local` connects to the CR3L gateway using:
+
+- CR3L Device ID
+- CR3L Local Key
+- CR3L LAN IP address or hostname
+- protocol 3.5
+
+These are ordinary Tuya LAN credentials.
+
+### Individual BLE Lock
+
+Each BLE lock has its own information:
+
+- Tuya Device ID
+- Product ID
+- Tuya category
+- subdevice UUID / `node_id`
+- DP71 authentication material exposed by Tuya as `ble_unlock_check`
+
+Do not conflate the BLE lock's Tuya Device ID with the CR3L gateway Device ID
+used for the LAN connection.
+
+## Manual Home Assistant Onboarding
+
+For a BLE lock behind the tested CR3L gateway, use this mapping in
+`tuya-local` manual setup:
+
+- Device ID: CR3L gateway Device ID
+- IP address or hostname: CR3L gateway LAN address
+- Local key: CR3L gateway Local Key
+- Protocol version: `3.5`
+- Poll only: unchecked in the tested configuration
+- Sub device `node_id` or `uuid`: UUID / `node_id` of the individual BLE lock
+
+Warning: the BLE lock's own Tuya Device ID is not the value entered in
+`tuya-local`'s main Device ID field when the lock is accessed through the
+gateway.
+
+## Architecture Sketch
+
+Conceptually:
+
+```text
+Home Assistant
+     |
+ tuya-local
+     |
+Tuya LAN 3.5
+     |
+CR3L gateway
+   /       \
+UUID       UUID
+ |           |
+YR05        YR02
+ |           |
+DP71        DP71
+```
+
+Generic infrastructure includes LAN protocol handling, gateway transport,
+subdevice addressing, CID / UUID / `node_id` handling, and gateway event
+handling. Do not name generic gateway infrastructure after Yamiry unless the
+code is genuinely Yamiry-specific.
+
+Device-specific configuration may contain Yamiry manufacturer/model identity,
+confirmed Product IDs, DP mappings, entities, and device-specific behavior.
 
 ## Existing Gateway Architecture
 
@@ -242,8 +385,8 @@ Relevant file:
 
 - `custom_components/tuya_local/const.py`
 
-`CONF_DEVICE_CID = "device_cid"` already exists. Protocol version `3.4` is
-already in `TUYA_PROTOCOL_VERSIONS`.
+`CONF_DEVICE_CID = "device_cid"` already exists. Protocol versions `3.4` and
+`3.5` are already in `TUYA_PROTOCOL_VERSIONS`.
 
 ### Cloud and Config Flow
 
@@ -288,7 +431,8 @@ When `dev_cid` is present:
 - the child receives `parent=parent`
 - the parent and child share the same asyncio lock
 
-This matches the confirmed YR05 transport shape: parent gateway plus child CID.
+This matches the confirmed BLE lock transport shape: parent gateway plus child
+CID.
 
 Protocol handling already rotates and applies protocol version to both child
 and parent when a parent is present.
@@ -448,9 +592,10 @@ Why state can work while detailed events do not:
   non-persistent, absent from normal child `status()` responses, or delivered
   through a separate gateway/event-history mechanism, the current gateway path
   can miss them even while DP47 continues to work.
-- The current minimal YR05 profile intentionally does not expose DP12, DP13, or
-  DP19. Even if those DPs arrived as ordinary `dps` updates, there is currently
-  no YR05 entity to present them.
+- The current profile exposes DP12, DP13, and DP19 as optional,
+  non-persistent event-like lock datapoints. That makes ordinary `dps` updates
+  presentable, but it does not prove the gateway reliably emits detailed
+  credential records in real time.
 
 This limitation looks partly unimplemented in `tuya-local` and partly
 unconfirmed at the gateway protocol layer. Current code can consume ordinary
@@ -609,43 +754,54 @@ Recommended handling:
 - not exposed as an entity attribute
 - not sufficient by itself to enable unlock behavior
 
-## Recommended YR05 YAML Shape
+## Current Device Profile Shape
 
-The initial milestone profile should be conservative and only include the DPs
-needed for gateway discovery, battery, lock/unlock, and physical state.
+Current config filename:
 
-Initial milestone profile structure:
+- `custom_components/tuya_local/devices/yamiry_yr05_lock.yaml`
+
+Current supported products:
+
+- Yamiry YR05, product ID `hhxgpozj`
+- Yamiry YR02, product ID `6xjvratw`
+
+The filename uses YR05 as a conservative anchor because YR05 was the first
+validated model. Do not describe YR05 as technically superior or as the "main"
+model.
+
+Possible future filename:
+
+- `yamiry_yr_lock.yaml`
+
+That broader name should only be reconsidered if additional YR-series hardware
+establishes a genuine common family. This future rename is not decided.
+
+Current profile structure:
 
 - top-level `name: Door lock`
 - lock entity:
-  - DP46 `lock`
-  - DP47 `lock_state`, mapped so `false` means locked and `true` means unlocked
-  - DP71 `authenticated_ble_unlock`, optional, sensitive
+  - DP12 `unlock_fingerprint`, optional, non-persistent
+  - DP13 `unlock_password`, optional, non-persistent
+  - DP19 `unlock_ble`, optional, non-persistent
+  - DP46 `lock`, optional for matching
+  - DP47 `lock_state`, optional for matching, mapped so `false` means locked
+    and `true` means unlocked
+  - DP71 `authenticated_ble_unlock`, optional, non-persistent, sensitive
 - battery sensor:
   - DP8 battery percentage
+- config entities:
+  - DP28 language
+  - DP31 beep volume
+  - DP33 automatic lock enable
+  - DP36 auto-lock delay
+- passage mode:
+  - DP101 switch
 
-Deferred profile additions after the initial milestone works reliably:
+`optional: true` on DP46 and DP47 means these DPs are not required for device
+matching. They remain available to the lock entity when exposed by the device.
 
-- DP12 `unlock_fingerprint`, optional, non-persistent
-- DP13 `unlock_password`, optional, non-persistent
-- DP19 `unlock_ble`, optional, non-persistent
-- DP28 language, only with confirmed enum values
-- DP31 beep volume, only with confirmed enum values or numeric range
-- DP33 automatic lock enable
-- DP36 auto-lock delay, only with confirmed range/unit/scale
-
-Do not invent enum values for DP28 or DP31. Existing profiles often use values
-such as `mute`, `low`, `normal`, `high`, `english`, and
-`chinese_simplified`, but those should not be assumed for YR05 unless confirmed
-by the device data model or logs.
-
-Do not invent ranges or units for DP36. Use Tuya data model evidence if
-available.
-
-The known gateway CID `cd72a26b41cc2f02` is not a product ID and should not be
-used in the YAML `products:` section. The current profile uses confirmed
-product ID `hhxgpozj` with model metadata derived from the confirmed H13
-new-chip lock identity.
+The known gateway CIDs / UUIDs are not product IDs and should not be used in
+the YAML `products:` section.
 
 ## `ble_unlock_check` Supply and Storage
 
@@ -688,7 +844,7 @@ Current branch behavior:
 3. `async_lock()` remains on the existing writable `lock` path and writes
    `true`.
 4. `async_unlock()` checks `authenticated_ble_unlock` before the existing
-   writable `lock=false` branch, so the YR05 profile does not unlock by
+   writable `lock=false` branch, so the Yamiry profile does not unlock by
    writing `DP46=false`.
 5. `build_ble_unlock_msg` builds the DP71 Base64 request from configured
    `ble_unlock_check`.
@@ -696,7 +852,7 @@ Current branch behavior:
 7. Existing passive `ble_unlock_check` profiles do not opt in to active unlock
    behavior unless they declare `authenticated_ble_unlock`.
 
-## Tests To Add or Update
+## Relevant Tests
 
 ### Lock Tests
 
@@ -704,7 +860,7 @@ Relevant file:
 
 - `tests/test_lock.py`
 
-Add tests for:
+Focused lock tests cover:
 
 - DP71 builder produces the exact expected Base64 payload from synthetic
   non-secret 19-byte source data and a fixed timestamp
@@ -714,11 +870,12 @@ Add tests for:
   configured
 - `async_unlock()` sends nothing useful and raises/fails cleanly when source
   material is missing
-- `async_lock()` with YR05 `lock` DP writes `DP46=true`
+- `async_lock()` with the Yamiry lock DP writes `DP46=true`
 - `async_unlock()` does not write `DP46=false`
 
-Defer DP12, DP13, and DP19 event presentation tests until after the initial
-milestone works reliably.
+DP12, DP13, and DP19 are represented in the current device-config tests.
+Reliable real-time gateway event tests remain deferred until the gateway
+event/passthrough path is better understood.
 
 ### Device Config Tests
 
@@ -731,7 +888,7 @@ Update known lock DPs to include:
 - `authenticated_ble_unlock`
 - `ble_unlock_check`, if not already accepted for the relevant entity path
 
-The new YAML profile should pass device config parsing.
+The current YAML profile should pass device config parsing.
 
 ### Gateway/Subdevice Tests
 
@@ -812,9 +969,8 @@ uv run yamllint custom_components/tuya_local/devices
 
 ## Open Questions Before Productionizing
 
-- What are the confirmed DP28 language enum values?
-- What are the confirmed DP31 beep-volume enum values or numeric range?
-- What is the confirmed DP36 range, unit, and scale?
+- Are the confirmed DP28, DP31, and DP36 values identical on any future Yamiry
+  models added to this profile?
 - Does the cloud config flow's indirect-device local-key behavior match all
   YR05 gateway setups, or only the tested one?
 - Is real-time physical credential/event passthrough available from the
@@ -822,8 +978,11 @@ uv run yamllint custom_components/tuya_local/devices
 
 ## Current Recommended Next Step
 
-The initial gateway-control milestone is validated. Do not add deferred DPs to
-the YR05 profile until the physical-event path is better understood.
+The gateway-control milestone and the known low-hanging-fruit profile entities
+are in place for the confirmed Yamiry YR05/YR02 locks. Do not broaden the
+profile to untested Yamiry YR-series locks or add credential-management
+features until the physical-event path and additional hardware compatibility
+are better understood.
 
 Recommended next research step:
 

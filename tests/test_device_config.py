@@ -594,10 +594,37 @@ def test_configs_can_be_matched():
             )
 
 
-def test_yr05_h13_lock_profile(mocker):
-    """Test the YR05 H13 lock profile's confirmed gateway DPs."""
-    cfg = get_config("yr05_h13_lock")
+def test_yamiry_yr05_lock_profile(mocker):
+    """Test the Yamiry YR05/YR02 lock profile's confirmed gateway DPs."""
+    cfg = get_config("yamiry_yr05_lock")
     entities = list(cfg.all_entities())
+
+    assert cfg.matches_product("hhxgpozj")
+    assert cfg.matches_product("6xjvratw")
+    assert cfg.product_display_entries(["hhxgpozj"]) == [("Yamiry", "YR05")]
+    assert cfg.product_display_entries(["6xjvratw"]) == [("Yamiry", "YR02")]
+    assert cfg.matches(
+        {
+            "8": 53,
+            "28": "english",
+            "31": "high",
+            "33": False,
+            "36": 5,
+            "68": "function2",
+        },
+        ["6xjvratw"],
+    )
+    assert cfg.matches(
+        {
+            "8": 53,
+            "28": "english",
+            "31": "high",
+            "33": False,
+            "36": 5,
+            "68": "function2",
+        },
+        [],
+    )
 
     lock = next(entity for entity in entities if entity.entity == "lock")
     for name, dp_id in {
@@ -611,10 +638,13 @@ def test_yr05_h13_lock_profile(mocker):
         assert dp.optional
         assert not dp.persist
 
-    assert lock.find_dps("lock").id == "46"
+    lock_dp = lock.find_dps("lock")
+    assert lock_dp.id == "46"
+    assert lock_dp.optional
 
     lock_state = lock.find_dps("lock_state")
     assert lock_state.id == "47"
+    assert lock_state.optional
     assert lock_state.get_value(mock_device({"47": False}, mocker)) is True
     assert lock_state.get_value(mock_device({"47": True}, mocker)) is False
 

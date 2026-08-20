@@ -123,10 +123,10 @@ def test_yr05_gateway_debug_wraps_parent_internals(patched_hass, mocker, caplog)
             CONF_DEVICE_ID: "gateway_id",
             CONF_HOST: "some.ip.address",
             CONF_LOCAL_KEY: "local-key-secret",
-            CONF_PROTOCOL_VERSION: "3.4",
+            CONF_PROTOCOL_VERSION: "3.5",
             CONF_DEVICE_CID: "child_id",
             CONF_POLL_ONLY: False,
-            CONF_TYPE: "yr05_h13_lock",
+            CONF_TYPE: "yamiry_yr05_lock",
         },
     )
 

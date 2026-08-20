@@ -47,9 +47,9 @@ _ERROR_HINTS = {
 
 # TEMPORARY YR05 gateway event passthrough investigation.
 # Remove this block after physical-event routing is understood.
-YR05_GATEWAY_DEBUG_CONFIG_TYPE = "yr05_h13_lock"
+YR05_GATEWAY_DEBUG_CONFIG_TYPE = "yamiry_yr05_lock"
 YR05_GATEWAY_DEBUG_PREFIX = "YR05_GATEWAY_DEBUG"
-YR05_GATEWAY_DEBUG_SAFE_VALUE_DPS = {"8", "12", "13", "19", "46", "47"}
+YR05_GATEWAY_DEBUG_SAFE_VALUE_DPS = {"8", "46", "47"}
 YR05_GATEWAY_DEBUG_WRAPPED_ATTR = "_tuya_local_yr05_gateway_debug_wrapped"
 
 
