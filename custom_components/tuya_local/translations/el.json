@@ -62,7 +62,8 @@
                 "title": "Λεπτομέρειες συσκευής",
                 "description": "{device_name}Επιλέξτε ένα όνομα για αυτή τη συσκευή",
                 "data": {
-                    "name": "Όνομα"
+                    "name": "Όνομα",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "Διεύθυνση IP ή όνομα",
                     "local_key": "Local key",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Έκδοση Πρωτοκόλλου (δοκιμάστε αυτόματο (auto) αν δεν το γνωρίζετε)",
                     "poll_only": "Ανίχνευση μόνο (δοκιμάστε αυτό αν η συσκευή δε λειτουργεί πλήρως)"
                 }

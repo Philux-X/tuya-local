@@ -62,7 +62,8 @@
                 "title": "Подробности за устройството",
                 "description": "{device_name}Изберете име за това устройство",
                 "data": {
-                    "name": "Име"
+                    "name": "Име",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP адрес или име на хост",
                     "local_key": "Локален ключ",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Версия на протокола (опитайте автоматична, ако не е известна)",
                     "poll_only": "Само анкетиране (опитайте това, ако устройството ви не работи напълно)"
                 }

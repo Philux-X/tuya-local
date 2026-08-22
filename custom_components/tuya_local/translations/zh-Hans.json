@@ -62,7 +62,8 @@
                 "title": "设备详情",
                 "description": "{device_name}为此设备选择一个名称",
                 "data": {
-                    "name": "名称"
+                    "name": "名称",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP地址或主机名",
                     "local_key": "Local key",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "协议版本（如果不清楚，请选择自动）",
                     "poll_only": "仅轮询（如果设备无法正常工作，请选择此项）"
                 }

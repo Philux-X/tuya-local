@@ -62,7 +62,8 @@
                 "title": "設備詳情",
                 "description": "{device_name}為此設備選擇一個名稱",
                 "data": {
-                    "name": "名稱"
+                    "name": "名稱",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP位址或主機名",
                     "local_key": "Local key",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "協議版本（如果不清楚，請選擇自動）",
                     "poll_only": "僅輪詢（如果設備無法正常運作，請選擇此項）"
                 }

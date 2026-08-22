@@ -62,7 +62,8 @@
                 "title": "デバイスの詳細",
                 "description": "{device_name}このデバイスの名前を選択してください",
                 "data": {
-                    "name": "名"
+                    "name": "名",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IPアドレスまたはホスト名",
                     "local_key": "ローカルキー",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "プロトコルのバージョン (不明な場合はAutoを試してください)",
                     "poll_only": "投票のみ (デバイスが動作しない場合)"
                 }

@@ -62,7 +62,8 @@
                 "title": "Eszköz részletei",
                 "description": "{device_name}Válasz egy nevet az eszköznek",
                 "data": {
-                    "name": "Név"
+                    "name": "Név",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP cím vagy állomásnév",
                     "local_key": "Helyi kulcs (local_key)",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Protokol verzió (hagyd auto-n, ha nem tudod)",
                     "poll_only": "Csak olvasás (próbáld ki ezt, ha az eszköz nem működik rendesen)"
                 }

@@ -62,7 +62,8 @@
                 "title": "Налаштування пристрою",
                 "description": "{device_name}Оберіть назву для цього пристрою",
                 "data": {
-                    "name": "Назва"
+                    "name": "Назва",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP-адреса або ім'я хоста",
                     "local_key": "Локальний ключ (local_key)",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Версія протоколу (якщо не знаєте, спробуйте 'auto')",
                     "poll_only": "Виключно опитування (спробуйте це, якщо ваш пристрій не зовсім працює)"
                 }

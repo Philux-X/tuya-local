@@ -62,7 +62,8 @@
                 "title": "Detail perangkat",
                 "description": "{device_name}Buat nama untuk perangkat ini",
                 "data": {
-                    "name": "Nama"
+                    "name": "Nama",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "Alamat IP atau nama hos",
                     "local_key": "Kunci lokal (local_key)",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Versi protokol (coba otomatis bila tidak diketahui)",
                     "poll_only": "Hanya poll (Coba ini bila perangkat Anda tidak berfungsi secara penuh)"
                 }

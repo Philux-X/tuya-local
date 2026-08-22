@@ -1,27 +1,18 @@
 import asyncio
 import logging
-from types import SimpleNamespace
 from time import time
 
 import pytest
 
-# from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_HOMEASSISTANT_STOP
-from homeassistant.const import CONF_HOST, CONF_NAME
-
 from custom_components.tuya_local.const import (
-    CONF_DEVICE_CID,
     CONF_DEVICE_ID,
-    CONF_LOCAL_KEY,
-    CONF_POLL_ONLY,
-    CONF_PROTOCOL_VERSION,
-    CONF_TYPE,
     DOMAIN,
 )
 from custom_components.tuya_local.device import (
     TuyaLocalDevice,
     async_delete_device,
-    setup_device,
 )
+from custom_components.tuya_local.helpers.device_config import TuyaEntityConfig
 
 from .const import EUROM_600_HEATER_PAYLOAD
 
@@ -89,97 +80,6 @@ def test_subdevice_unique_id_is_scoped_by_gateway(patched_hass, mock_api):
     )
 
     assert subject.unique_id == "gateway_id/child_id"
-
-
-def test_yr05_gateway_debug_wraps_parent_internals(patched_hass, mocker, caplog):
-    """YR05 diagnostics should log sanitized parent receive/decode metadata."""
-    packet = SimpleNamespace(cmd=8, seqno=42, retcode=0, payload=b"raw-secret-data")
-    decoded = {
-        "data": {
-            "cid": "child_id",
-            "dps": {
-                "8": 87,
-                "12": "credential-event",
-                "47": True,
-                "71": "dp71-secret",
-            },
-        }
-    }
-    parent = SimpleNamespace(
-        parent=None,
-        _receive=mocker.Mock(return_value=packet),
-        _decode_payload=mocker.Mock(return_value=decoded),
-        set_socketRetryLimit=mocker.Mock(),
-    )
-    child = SimpleNamespace(
-        parent=parent,
-        set_socketRetryLimit=mocker.Mock(),
-    )
-    mocker.patch("tinytuya.Device", side_effect=[parent, child])
-    setup_device(
-        patched_hass,
-        {
-            CONF_NAME: "YR05",
-            CONF_DEVICE_ID: "gateway_id",
-            CONF_HOST: "some.ip.address",
-            CONF_LOCAL_KEY: "local-key-secret",
-            CONF_PROTOCOL_VERSION: "3.5",
-            CONF_DEVICE_CID: "child_id",
-            CONF_POLL_ONLY: False,
-            CONF_TYPE: "yamiry_yr05_lock",
-        },
-    )
-
-    with caplog.at_level(
-        logging.DEBUG,
-        logger="custom_components.tuya_local.device.yr05_gateway_debug",
-    ):
-        assert parent._receive() is packet
-        assert parent._decode_payload(b"raw-payload") is decoded
-
-    assert "YR05_GATEWAY_DEBUG parent_receive" in caplog.text
-    assert "YR05_GATEWAY_DEBUG parent_decode" in caplog.text
-    assert '"cmd": 8' in caplog.text
-    assert '"seqno": 42' in caplog.text
-    assert '"payload_length": 15' in caplog.text
-    assert '"cid": "child_id"' in caplog.text
-    assert '"dp_ids": ["12", "47", "71", "8"]' in caplog.text
-    assert '"value": 87' in caplog.text
-    assert '"value": true' in caplog.text
-    assert "raw-secret-data" not in caplog.text
-    assert "credential-event" not in caplog.text
-    assert "dp71-secret" not in caplog.text
-    assert "local-key-secret" not in caplog.text
-
-
-def test_yr05_gateway_debug_ignores_unrelated_profiles(patched_hass, mocker):
-    """The temporary gateway diagnostics should be profile gated."""
-    parent = SimpleNamespace(
-        parent=None,
-        _receive=mocker.Mock(return_value=None),
-        _decode_payload=mocker.Mock(return_value={}),
-        set_socketRetryLimit=mocker.Mock(),
-    )
-    child = SimpleNamespace(
-        parent=parent,
-        set_socketRetryLimit=mocker.Mock(),
-    )
-    mocker.patch("tinytuya.Device", side_effect=[parent, child])
-    setup_device(
-        patched_hass,
-        {
-            CONF_NAME: "Other",
-            CONF_DEVICE_ID: "gateway_id",
-            CONF_HOST: "some.ip.address",
-            CONF_LOCAL_KEY: "local-key-secret",
-            CONF_PROTOCOL_VERSION: "3.4",
-            CONF_DEVICE_CID: "child_id",
-            CONF_POLL_ONLY: False,
-            CONF_TYPE: "other_profile",
-        },
-    )
-
-    assert not hasattr(parent, "_tuya_local_yr05_gateway_debug_wrapped")
 
 
 def test_device_info(subject, mock_api):
@@ -445,6 +345,51 @@ async def test_set_property_immediately_stores_pending_updates(subject):
     subject._cached_state = {"1": True}
     await subject.async_set_property("1", False)
     assert not subject.get_property("1")
+
+
+@pytest.mark.asyncio
+async def test_sensitive_dps_are_redacted_from_device_debug_logs(
+    subject, mock_api, mocker, caplog
+):
+    sensitive_value = "generated-dp71-secret"
+    entity = mocker.Mock()
+    entity._config = TuyaEntityConfig(
+        mocker.Mock(),
+        {
+            "entity": "lock",
+            "dps": [
+                {
+                    "id": 8,
+                    "type": "integer",
+                    "name": "battery",
+                },
+                {
+                    "id": 71,
+                    "type": "string",
+                    "name": "authenticated_ble_unlock",
+                    "sensitive": True,
+                },
+            ],
+        },
+    )
+    subject._children = [entity]
+    mock_api().status.return_value = {"dps": {"8": 88, "71": sensitive_value}}
+    subject._retry_on_failed_connection = mocker.AsyncMock()
+
+    with caplog.at_level(logging.DEBUG, logger="custom_components.tuya_local.device"):
+        subject._refresh_cached_state()
+        subject._add_properties_to_pending_updates({"8": 89, "71": sensitive_value})
+        await subject._send_pending_updates()
+
+    assert "refreshed device state" in caplog.text
+    assert "new state (incl pending)" in caplog.text
+    assert "new pending updates" in caplog.text
+    assert "sending dps update" in caplog.text
+    assert sensitive_value not in caplog.text
+    assert '"71": "**REDACTED**"' in caplog.text
+    assert '"value": "**REDACTED**"' in caplog.text
+    assert '"8": 88' in caplog.text
+    assert '"8": 89' in caplog.text
 
 
 @pytest.mark.asyncio

@@ -62,7 +62,8 @@
                 "title": "Enhetsdetaljer",
                 "description": "{device_name}Angi et navn for din enhet",
                 "data": {
-                    "name": "Navn"
+                    "name": "Navn",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP addresse eller vertsnavn",
                     "local_key": "Lokal nøkkel",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Protocol versjon (prøv auto hvis du der usikker)",
                     "poll_only": "Kun poll (prøv dette hvis enhenten ikke virker ordentlig)"
                 }

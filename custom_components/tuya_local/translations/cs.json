@@ -62,7 +62,8 @@
                 "title": "Podrobnosti o zařízení",
                 "description": "{device_name}Vyberte jméno pro toto zařízení",
                 "data": {
-                    "name": "Jméno"
+                    "name": "Jméno",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "IP adresa nebo název hostitele (hostname)",
                     "local_key": "lokální klíč (local_key)",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Verze protokolu (zkuste auto pokud ji neznáte)",
                     "poll_only": "Poll only (vyzkoušejte pokud zařízení úplně nefunguje)"
                 }

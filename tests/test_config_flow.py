@@ -783,7 +783,7 @@ async def test_flow_choose_entities_requests_ble_unlock_check_for_auth_profile(
             CONF_HOST: "hostname",
             CONF_POLL_ONLY: False,
             CONF_PROTOCOL_VERSION: "auto",
-            CONF_TYPE: "yr05_lock",
+            CONF_TYPE: "yamiry_yr05_lock",
             CONF_DEVICE_CID: None,
         },
     )
@@ -961,7 +961,7 @@ async def test_options_flow_updates_ble_unlock_check(hass, bypass_setup, mocker)
             CONF_NAME: "test",
             CONF_POLL_ONLY: False,
             CONF_PROTOCOL_VERSION: "auto",
-            CONF_TYPE: "ble_pt216_temp_humidity",
+            CONF_TYPE: "yamiry_yr05_lock",
             CONF_DEVICE_CID: "",
             CONF_BLE_UNLOCK_CHECK: "old_check",
         },

@@ -62,7 +62,8 @@
                 "title": "Detalii dispozitiv",
                 "description": "{device_name}Alegeți un nume pentru acest dispozitiv",
                 "data": {
-                    "name": "Nume"
+                    "name": "Nume",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "Adresă IP sau hostname",
                     "local_key": "Cheie locală",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Versiunea protocolului (încercați auto dacă nu este cunoscută)",
                     "poll_only": "Doar interogare (încercați dacă dispozitivul nu funcționează complet)"
                 }

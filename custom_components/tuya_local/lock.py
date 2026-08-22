@@ -287,7 +287,7 @@ class TuyaLocalLock(TuyaLocalEntity, LockEntity):
         """Generate the authenticated BLE unlock message."""
         try:
             source = b64decode(ble_unlock_check, validate=True)
-        except (BinasciiError, TypeError, ValueError):
+        except BinasciiError, TypeError, ValueError:
             raise HomeAssistantError("BLE unlock check must be valid base64") from None
         if len(source) != 19:
             raise HomeAssistantError("BLE unlock check must decode to 19 bytes")

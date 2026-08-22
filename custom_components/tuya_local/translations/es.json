@@ -62,7 +62,8 @@
                 "title": "Detalles del dispositivo",
                 "description": "{device_name}Elija un nombre para este dispositivo",
                 "data": {
-                    "name": "Nombre"
+                    "name": "Nombre",
+                    "ble_unlock_check": "BLE unlock check"
                 }
             }
         },
@@ -94,6 +95,7 @@
                 "data": {
                     "host": "Dirección IP o nombre de host",
                     "local_key": "Clave local (Local key)",
+                    "ble_unlock_check": "BLE unlock check",
                     "protocol_version": "Versión del protocolo (pruebe automático si no lo sabe)",
                     "poll_only": "Solo encuesta (pruebe esto si su dispositivo no funciona completamente)"
                 }
