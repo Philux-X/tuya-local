@@ -716,7 +716,7 @@ async def async_test_connection(config: dict, hass: HomeAssistant):
     existing = domain_data.get(get_device_id(config)) if domain_data else None
     if existing and existing.get("device"):
         _LOGGER.info("Pausing existing device to test new connection parameters")
-        existing["device"].pause()
+        await existing["device"].pause()
         await asyncio.sleep(5)
 
     retval = None
@@ -740,6 +740,7 @@ async def async_test_connection(config: dict, hass: HomeAssistant):
             except Exception as e:
                 _LOGGER.debug("Protocol %s test failed with %s %s", proto, type(e), e)
             if device is not None:
+                # Each Test device owns a separate parent; its refresh has finished.
                 device._api.set_socketPersistent(False)
                 if device._api.parent:
                     device._api.parent.set_socketPersistent(False)

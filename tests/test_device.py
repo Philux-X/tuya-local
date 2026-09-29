@@ -734,14 +734,14 @@ async def test_async_receive(subject, mock_api, mocker):
     mock_api().set_socketPersistent.assert_called_once_with(False)
 
 
-def test_should_poll(subject):
+async def test_should_poll(subject):
     subject._cached_state = {"1": "sample", "updated_at": time()}
     subject._poll_only = False
     subject._temporary_poll = False
 
     # Test temporary poll via pause/resume
     assert not subject.should_poll
-    subject.pause()
+    await subject.pause()
     assert subject.should_poll
     subject.resume()
     assert not subject.should_poll
