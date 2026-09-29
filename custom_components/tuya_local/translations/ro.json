@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "Anulează",
                     "continuous": "Continuu",
+                    "custom": "Personalizat",
                     "5s": "5 secunde",
                     "10s": "10 secunde",
                     "15s": "15 secunde",
@@ -869,7 +870,13 @@
                     "4d": "4 zile",
                     "5d": "5 zile",
                     "6d": "6 zile",
-                    "7d": "7 zile"
+                    "7d": "7 zile",
+                    "10d": "10 zile",
+                    "30d": "30 zile",
+                    "60d": "60 zile",
+                    "90d": "90 zile",
+                    "160d": "160 zile",
+                    "365d": "365 zile"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "Temperatură ambientală"
             },
+            "inlet_temperature": {
+                "name": "Temperatură intrare"
+            },
+            "outlet_temperature": {
+                "name": "Temperatură ieșire"
+            },
             "cleanliness": {
                 "name": "Curățenie",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "Ocupat",
                     "normal": "Normal",
                     "low": "Scăzut",
+                    "medium": "Mediu",
                     "high": "Ridicat",
                     "unwashed": "Nespălat",
                     "pre_washing": "Pre-spălare",

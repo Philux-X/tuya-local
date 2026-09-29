@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "Batal",
                     "continuous": "Terus menerus",
+                    "custom": "Kustom",
                     "5s": "5 detik",
                     "10s": "10 detik",
                     "15s": "15 detik",
@@ -869,7 +870,13 @@
                     "4d": "4 hari",
                     "5d": "5 hari",
                     "6d": "6 hari",
-                    "7d": "7 hari"
+                    "7d": "7 hari",
+                    "10d": "10 hari",
+                    "30d": "30 hari",
+                    "60d": "60 hari",
+                    "90d": "90 hari",
+                    "160d": "160 hari",
+                    "365d": "365 hari"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "Suhu sekitar"
             },
+            "inlet_temperature": {
+                "name": "Suhu masuk"
+            },
+            "outlet_temperature": {
+                "name": "Suhu keluar"
+            },
             "cleanliness": {
                 "name": "Kebersihan",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "Terisi",
                     "normal": "Normal",
                     "low": "Rendah",
+                    "medium": "Sedang",
                     "high": "Tinggi",
                     "unwashed": "Belum dicuci",
                     "pre_washing": "Pencucian awal",

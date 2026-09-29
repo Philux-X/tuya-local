@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "取消",
                     "continuous": "连续",
+                    "custom": "自定义",
                     "5s": "5秒",
                     "10s": "10秒",
                     "15s": "15秒",
@@ -869,7 +870,13 @@
                     "4d": "4天",
                     "5d": "5天",
                     "6d": "6天",
-                    "7d": "7天"
+                    "7d": "7天",
+                    "10d": "10天",
+                    "30d": "30天",
+                    "60d": "60天",
+                    "90d": "90天",
+                    "160d": "160天",
+                    "365d": "365天"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "环境温度"
             },
+            "inlet_temperature": {
+                "name": "进水温度"
+            },
+            "outlet_temperature": {
+                "name": "出水温度"
+            },
             "cleanliness": {
                 "name": "烟机洁净度",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "占用",
                     "normal": "正常",
                     "low": "低",
+                    "medium": "中",
                     "high": "高",
                     "unwashed": "未清洗",
                     "pre_washing": "预洗中",

@@ -33,22 +33,20 @@ Do not copy HA configuration entries or raw authenticated unlock payloads here.
 September upstream release while preserving Yamiry functionality and the
 hardware-tested gateway synchronization.
 
-**Confirmed current state at the latest documentation review:**
+**Confirmed current state during the authorized September upgrade:**
 
-- Checked-out branch: feature/yr05-gateway-lock.
-- HEAD: 3d1388a865e3281a32f4f2050ea9ba2e7fc5a690.
-- Tracked working tree is clean; this handoff document is the sole untracked file.
-- Release tag v2026.8.1-yr05.6 resolves to that HEAD.
-- September upgrade investigation is complete; implementation has NOT begun.
-- No upgrade branch, merge, rebase, new release, or deployment was performed in
-  the investigation.
-- Git status confirms this handoff document is the only new working-tree file. It is
-  not committed merely by being created.
-
-**Authorization boundary:** the latest request authorizes maintaining this
-document. The preceding upgrade request was read-only. Obtain explicit
-authorization before starting the proposed upgrade. Do not interpret the plan
-below as permission to merge, commit, publish, tag, push, or deploy.
+- Checked-out branch: upgrade/2026.9.2-rel.
+- HEAD remains f4985b58ab26ba0fa55a50db64060e835987d77a (documentation commit).
+- Known-good released code/tag remain 3d1388a8 / v2026.8.1-yr05.6.
+- A no-commit merge of the exact annotated 2026.9.2-rel tag is in progress.
+  MERGE_HEAD is tag object 2f00da8b95912c08e51c4466c4a54761cfa0723e;
+  its peeled commit is f2b3d490e5e9ba87cf75568c36983d62c258c544.
+- Both textual conflicts are resolved and staged. No merge commit exists.
+- feature/yr05-gateway-lock already pointed to f4985b58 when inspected in this
+  session; its only change from 3d1388a8 is this documentation. It was not moved.
+- Implementation and local validation are authorized; commit, push, tag,
+  release, deployment, and rewriting released history remain prohibited.
+- Current validation and resolution details are in the implementation record below.
 
 ## Remotes, branches, and exact anchors
 
@@ -57,7 +55,7 @@ Confirmed remotes (credential-free URLs):
 - origin: https://github.com/Philux-X/tuya-local.git
 - upstream: https://github.com/make-all/tuya-local.git
 
-Confirmed local branch tips at this review:
+Historical branch snapshot before the user created the upgrade branch (see current state above):
 
 | Branch/ref | Commit |
 | --- | --- |
@@ -356,7 +354,7 @@ ble_unlock_check redaction. Bring migration 13.24, minor version, translations,
 icons, profiles, and relevant tests together. Consider additional transport
 corrections only as separate reviewed changes after the baseline upgrade.
 
-## Exact next steps for a new agent
+## Original implementation checklist (historical; see current next steps below)
 
 1. Read this document and AGENTS.md. Check git status, current branch, HEAD,
    release tag targets, and remotes without exposing credentials.
@@ -422,3 +420,88 @@ corrections only as separate reviewed changes after the baseline upgrade.
   starting state, release anchors, and test definitions. No implementation or
   deployment changes made in this documentation session.
 - 2026-09-29: reverified branch, HEAD, .6 tag, September target, upstream/main, and common ancestor before the proposed upgrade; reviewed handoff completeness and credential exclusion. Only this untracked document changed; no merge begun.
+
+## Authorized September merge implementation record (2026-09-29)
+
+Merge: `git merge --no-commit --no-ff 2026.9.2-rel` on the existing upgrade
+branch, starting from clean f4985b58. The initial sandbox denied Git metadata
+writes; the authorized merge was retried with filesystem approval.
+
+Conflicts resolved:
+
+- device.py: retained the complete released implementation byte-for-byte in Git.
+  This intentionally overrides upstream's inner retry lock, unprotected direct
+  receive/heartbeat/cleanup, child socket checks, and ca2c3dc6 receive-error
+  classification/backoff. No new transport policy was needed for this merge.
+- tests/test_diagnostics.py: retained our BLE configuration redaction test AND
+  upstream's four sensitive attribute/state redaction tests; formatted the union.
+
+All 29 overlapping files were reviewed: __init__.py, config_flow.py, device.py,
+diagnostics.py, test_device_config.py, test_diagnostics.py and all 23 translation
+files. Structural comparison of every translation leaf confirmed all upstream
+content and our custom BLE setup/options labels survive. Automatic Python merges
+were compared against both parents: migration 13.24 coexists with awaited failed
+cleanup; config-flow minor 24 retains awaited pause and BLE options; diagnostics
+retains explicit BLE source redaction with upstream's state/attribute changes;
+profile validation retains authenticated_ble_unlock and Yamiry-specific tests.
+
+All custom-only files were verified against 3d1388a8. const.py, lock.py, the
+Yamiry profile, test_device.py, test_lock.py, and test_gateway_synchronization.py
+are unchanged. test_config_flow.py has only the new migration test described
+below. device.py is also unchanged from 3d1388a8. Thus DP47/DP71/DP101, battery,
+entities, parent reuse, CID, protocol 3.5, outer shared locks, executor draining,
+parent-aware recovery, pause/stop/receive and failed-setup cleanup are retained.
+No inner retry-lock acquisition was introduced.
+
+Adopted release content includes migration 13.24 and matching translations/icons/
+profiles, diagnostics improvements, UnitOfDensity, media-player support/tests,
+scandir closure, color-temperature limit normalization, cloud hub/logging changes,
+September profiles, manifest 2026.9.2, HA minimum 2026.8, and development test pin
+0.13.365. Runtime TinyTuya and sharing-SDK requirements are unchanged. Historical
+"proposed adoption" rows above now describe adopted content for this uncommitted
+merge, except the explicitly rejected/deferred transport and post-release changes.
+
+Added test: test_yamiry_migration_13_23_preserves_configuration_and_entities,
+parameterized for two synthetic sibling CIDs. It runs production migration with
+the real profile and HA registry and checks version 13/minor 24, unchanged entry
+identity, all profile entity unique IDs/entity IDs, protocol/CID/auth configuration,
+and option overrides. All new authentication fixtures are explicitly fake strings.
+
+Validation so far (WSL, Python 3.14.7, uv environment /tmp/tuya-gateway-tests):
+
+- `uv run pytest tests/test_gateway_synchronization.py tests/test_device.py tests/test_config_flow.py tests/test_lock.py tests/test_diagnostics.py -q`: 136 passed.
+- `uv run ruff format tests/test_config_flow.py tests/test_diagnostics.py`: one file formatted.
+- `uv run ruff check .`: passed.
+- `uv run ruff check --select I .`: passed.
+- `uv run ruff format --check .`: passed, 112 files.
+- `uv run yamllint custom_components/tuya_local/devices`: exit 0; upstream marpou_ceiling_lamp_ledlight.yaml line 3 has a comment indentation warning.
+- `uv run pytest --cov=custom_components/tuya_local --cov-report=term:skip-covered -q`: 458 passed in 617.52 seconds; 71% aggregate coverage. Includes profile/schema and translation tests.
+- `uv run untranslated_entities`: exits 0 but emits an error for the pre-existing Yamiry select.volume translation key. Verified the released 3d1388a8 profile and English translation already have this mismatch. Deferred rather than changing profile/entity naming in this upgrade.
+- `git diff --check`: unstaged changes passed at initial review.
+- `git diff --cached --check`: inherited upstream CRLF lines are reported as trailing whitespace, plus ACKNOWLEDGEMENTS.md's upstream blank EOF line. With `-c core.whitespace=cr-at-eol`, only that EOF blank remains. No unrelated release files were rewritten to hide these findings.
+- No unresolved index entries or merge markers found in runtime/tests/docs.
+
+Current next steps:
+
+1. Local validation is complete. Review the merge and the inherited validation findings below; do not restart or auto-commit the merge.
+2. Human review the staged merge plus handoff update. Do not restart the merge.
+3. Commit only with explicit authorization. No commit/push/release/deploy permitted
+   by the implementation request.
+4. Hardware validation of this merged tree has NOT occurred. Retain .6 as the
+   known-good baseline; after separate approval/backups test both locks together,
+   restart/reload/reconnect, unlock/state/Passage Mode/battery/options/redaction.
+5. Deferred architecture, null-response policy, separate config-flow sessions,
+   ca2c3dc6, and independently cancelled executor Futures at forced HA shutdown
+   remain as documented; no new guarantees for those cases are claimed.
+
+Final review: ready for human review before commit, with the inherited findings
+above explicitly disclosed. Compared final tree against f4985b58, 3d1388a8, and
+f2b3d490. No unresolved index entries or conflict markers. Credential-related
+added lines were reviewed: upstream semantic names, documentation, and synthetic
+test fixtures only; no real authentication values or credentials added. A simple
+private-key/token-pattern scan found no matches (not a comprehensive security scan).
+Final Git state: 229 staged merge paths (71 added, 151 modified, 6 renamed,
+1 deleted), plus this one unstaged handoff update. No untracked source files.
+HEAD, feature branch and known-good tag are unchanged by this session. Ordinary
+unstaged diff checking passes; the full/staged diff has the inherited upstream
+whitespace findings described above. No hardware deployment or new release.

@@ -419,6 +419,58 @@ async def test_migrate_child_device_identity_is_scoped_by_gateway(hass):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("cid", ["example-yr05", "example-yr02"])
+async def test_yamiry_migration_13_23_preserves_configuration_and_entities(hass, cid):
+    """September migration must leave both gateway locks' identities and auth intact."""
+    from custom_components.tuya_local.helpers.device_config import get_config
+
+    identity = f"example-gateway/{cid}"
+    data = {
+        CONF_DEVICE_ID: "example-gateway",
+        CONF_DEVICE_CID: cid,
+        CONF_HOST: "example.invalid",
+        CONF_LOCAL_KEY: "example-not-a-real-key",
+        CONF_TYPE: "yamiry_yr05_lock",
+        CONF_PROTOCOL_VERSION: 3.5,
+        CONF_BLE_UNLOCK_CHECK: "example-not-real-auth-data",
+    }
+    options = {
+        CONF_BLE_UNLOCK_CHECK: "example-not-real-auth-option",
+        CONF_PROTOCOL_VERSION: 3.5,
+        CONF_POLL_ONLY: False,
+    }
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=13,
+        minor_version=23,
+        unique_id=identity,
+        data=data,
+        options=options,
+    )
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    profile = await hass.async_add_executor_job(get_config, "yamiry_yr05_lock")
+    entities = [
+        registry.async_get_or_create(
+            config.entity, DOMAIN, config.unique_id(identity), config_entry=entry
+        )
+        for config in profile.all_entities()
+    ]
+    before = {entity.entity_id: entity.unique_id for entity in entities}
+
+    assert await async_migrate_entry(hass, entry)
+
+    assert (entry.version, entry.minor_version) == (13, 24)
+    assert entry.unique_id == identity
+    assert dict(entry.data) == data
+    assert dict(entry.options) == options
+    assert {
+        entity.entity_id: entity.unique_id
+        for entity in er.async_entries_for_config_entry(registry, entry.entry_id)
+    } == before
+
+
+@pytest.mark.asyncio
 async def test_flow_user_init(hass, mocker):
     """Test the initialisation of the form in the first page of the manual config flow path."""
     result = await hass.config_entries.flow.async_init(

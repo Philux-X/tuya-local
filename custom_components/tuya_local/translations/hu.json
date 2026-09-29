@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "Mégse",
                     "continuous": "Folyamatos",
+                    "custom": "Egyéni",
                     "5s": "5 másodperc",
                     "10s": "10 másodperc",
                     "15s": "15 másodperc",
@@ -869,7 +870,13 @@
                     "4d": "4 nap",
                     "5d": "5 nap",
                     "6d": "6 nap",
-                    "7d": "7 nap"
+                    "7d": "7 nap",
+                    "10d": "10 nap",
+                    "30d": "30 nap",
+                    "60d": "60 nap",
+                    "90d": "90 nap",
+                    "160d": "160 nap",
+                    "365d": "365 nap"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "Környezeti hőmérséklet"
             },
+            "inlet_temperature": {
+                "name": "Bemeneti hőmérséklet"
+            },
+            "outlet_temperature": {
+                "name": "Kimeneti hőmérséklet"
+            },
             "cleanliness": {
                 "name": "Tisztaság",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "Foglalt",
                     "normal": "Normál",
                     "low": "Alacsony",
+                    "medium": "Közepes",
                     "high": "Magas",
                     "unwashed": "Nem mosott",
                     "pre_washing": "Előmosás",

@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "Cancel",
                     "continuous": "Continuous",
+                    "custom": "Custom",
                     "5s": "5 seconds",
                     "10s": "10 seconds",
                     "15s": "15 seconds",
@@ -869,7 +870,13 @@
                     "4d": "4 days",
                     "5d": "5 days",
                     "6d": "6 days",
-                    "7d": "7 days"
+                    "7d": "7 days",
+                    "10d": "10 days",
+                    "30d": "30 days",
+                    "60d": "60 days",
+                    "90d": "90 days",
+                    "160d": "160 days",
+                    "365d": "365 days"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "Ambient temperature"
             },
+            "inlet_temperature": {
+                "name": "Inlet temperature"
+            },
+            "outlet_temperature": {
+                "name": "Outlet temperature"
+            },
             "cleanliness": {
                 "name": "Cleanliness",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "Occupied",
                     "normal": "Normal",
                     "low": "Low",
+                    "medium": "Medium",
                     "high": "High",
                     "unwashed": "Unwashed",
                     "pre_washing": "Pre-washing",

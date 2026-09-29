@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "キャンセル",
                     "continuous": "連続",
+                    "custom": "カスタム",
                     "5s": "5秒",
                     "10s": "10秒",
                     "15s": "15秒",
@@ -869,7 +870,13 @@
                     "4d": "4日",
                     "5d": "5日",
                     "6d": "6日",
-                    "7d": "7日"
+                    "7d": "7日",
+                    "10d": "10日",
+                    "30d": "30日",
+                    "60d": "60日",
+                    "90d": "90日",
+                    "160d": "160日",
+                    "365d": "365日"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "周囲温度"
             },
+            "inlet_temperature": {
+                "name": "入口温度"
+            },
+            "outlet_temperature": {
+                "name": "出口温度"
+            },
             "cleanliness": {
                 "name": "清潔さ",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "占有",
                     "normal": "通常",
                     "low": "低い",
+                    "medium": "中",
                     "high": "高い",
                     "unwashed": "未洗浄",
                     "pre_washing": "予洗い",

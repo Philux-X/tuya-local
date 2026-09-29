@@ -797,6 +797,7 @@
                 "state": {
                     "cancel": "Annuler",
                     "continuous": "Continu",
+                    "custom": "Personnalisé",
                     "5s": "5 secondes",
                     "10s": "10 secondes",
                     "15s": "15 secondes",
@@ -869,7 +870,13 @@
                     "4d": "4 jours",
                     "5d": "5 jours",
                     "6d": "6 jours",
-                    "7d": "7 jours"
+                    "7d": "7 jours",
+                    "10d": "10 jours",
+                    "30d": "30 jours",
+                    "60d": "60 jours",
+                    "90d": "90 jours",
+                    "160d": "160 jours",
+                    "365d": "365 jours"
                 }
             },
             "temperature_unit": {
@@ -1159,6 +1166,12 @@
             "ambient_temperature": {
                 "name": "Température ambiante"
             },
+            "inlet_temperature": {
+                "name": "Température d'entrée"
+            },
+            "outlet_temperature": {
+                "name": "Température de sortie"
+            },
             "cleanliness": {
                 "name": "Propreté",
                 "state": {
@@ -1248,6 +1261,7 @@
                     "occupied": "Occupé",
                     "normal": "Normal",
                     "low": "Faible",
+                    "medium": "Moyen",
                     "high": "Haut",
                     "unwashed": "Non lavé",
                     "pre_washing": "Pré-lavage",

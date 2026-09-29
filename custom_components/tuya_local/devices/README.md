@@ -174,7 +174,7 @@ to use an entity for that (typically switch, number or select).
 
 *Optional, default false.*
 
-A boolean setting yo mark attributes as containing potentially sensitive
+A boolean setting to mark attributes as containing potentially sensitive
 data.  Setting this to true will result in the data being redacted in
 device diagnostics output.
 
@@ -496,9 +496,11 @@ can be used to specify the element that `conditions` applies to. `constraint` ca
 
 ### `conditions`
 
-*Optional, usually paired with `constraint.`*
+*Optional, usually paired with `constraint`.*
 
 Conditions defines a list of rules that are applied based on the `constraint` attribute. The contents are the same as Mapping Rules, but `dps_val` applies to the attribute specified by `constraint`, and also can be a list of values to match as well rather than a single value. All others act on the current attribute as they would in the mapping. Although conditions are specified within a mapping, they can also contain a `mapping` of their own to override that mapping. These nested mappings are limited to simple `dps_val` to `value` substitutions, as more complex rules would quickly become too complex to manage.
+
+Note that when dealing with `hex` and `base64` constraints, the resolved HA value is compared with the `dps_val` in the condition, as it is usually desirable to apply masks etc on binary packed values. For other types, the raw dps value received from the device is compared.
 
 When setting a dp which has conditions attached, the behaviour is slightly different depending on whether the constraint dp is readonly or not.
 
@@ -740,6 +742,24 @@ no information will be available about which specific credential was used to unl
 - **code_unlock** (optional, base64): a dp to unlock the lock by giving an 8 digit code. This corresponds in the Tuya info to `remote_no_dp_key` and has a specific format. If not accompanied by **set_unlock_code**(below), then the 8 digit key assigned to user 1 must be sent to unlock (and optionally lock) the lock. This can generally be found in the Tuya developer portal logs after opening the lock with the app on first phone that was paired.
 - **set_unlock_code** (optional, base64): a dp that allows setting the 8 digit code at the same time as it is used in code_unlock, so the user does not need to enter an 8 digit number. This corresponds in the Tuya info to `remote_no_pd_setkey` and has a specific format. If this is supplied, the integration will simultaneously set a random code in slot 7, and use it to unlock the lock, so the user does not need to provide any code.
 - **jammed** (optional, boolean): a dp to signal that the lock is jammed.
+
+### `media_player`
+
+- **switch** (optional, boolean): a switch-like dp to toggle power on and off
+- **volume** (optional, number 0.0 - 1.0): a dp to control the volume level
+- **mute** (optional, boolean): a switch-like dp to mute and unmute the audio
+- **source** (optional, string): a dp to select the source. A mapping of values is required to let HA know the sources that are available for the user to select.
+- **playback_state** (optional, string): a read-only dp that reports the current playback state (states must be valid MediaPlayerState values). If not provided, the integration will try to reverse engineer the state based on `play`, `pause`, `power` dps
+- **play** (optional, boolean): a button-like dp to start playback
+- **pause** (optional, boolean): a button-like dp to pause playback
+- **prev** (optional, boolean): a button-like dp to jump to the previous track, or start of the current track (behaviour may vary depending on the device)
+- **next** (optional, boolean): a button-like dp to jump to the next track
+- **stop** (optional, boolean): a button-like dp to stop playback. Unlike `pause`, a subsequent `play` will not resume from the position it was stopped at.
+- **seek_position** (optional, integer): a dp to seek to the specified position within the current track
+- **clear_playlist** (optional, boolean): a button-like dp to clear the current playlist
+- **shuffle** (optional, boolean): a switch-like dp to control whether to shuffle the playlist
+- **repeat** (optional, string): a dp to control the repeat mode. Valid RepeatMode values are ["off", "one", "all"]
+- **sound_mode** (optional, string): a dp to select the sound mode. A mapping of values is required to let HA know which modes are available for the user to select.
 
 ### `number`
 - **value** (required, number): a dp to control the number that is set.
